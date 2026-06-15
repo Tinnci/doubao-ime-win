@@ -20,7 +20,18 @@ src/
 └── main.rs
 ```
 
-这个结构适合当前 `doubao-voice-input.exe`，但不足以承载系统级 TIP DLL、profile 注册工具和发布验证。
+同时已经新增最小 TSF TIP crate：
+
+```text
+crates/
+└── tsf-tip/
+    ├── Cargo.toml
+    └── src/
+        ├── lib.rs
+        └── windows_tip.rs
+```
+
+当前 `crates/tsf-tip` 能构建 `doubao_tsf_tip.dll`，包含 COM DLL 导出、class factory 和最小 `ITfTextInputProcessorEx` lifecycle。profile 注册工具和发布验证还未实现。
 
 ## 2. 目标结构
 
@@ -56,7 +67,7 @@ doubao-ime-win/
 │   │   │   ├── composition.rs
 │   │   │   ├── event_bridge.rs
 │   │   │   └── ui/
-│   │   └── Cargo.toml
+│   │   └── Cargo.toml          # 已有最小 crate，后续继续补模块拆分
 │   │
 │   └── tip-installer/
 │       ├── src/

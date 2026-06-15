@@ -7,6 +7,7 @@
 | 文档 | 作用 |
 |------|------|
 | [windows-ime-requirements.md](./windows-ime-requirements.md) | 产品目标、范围、非目标、验收标准和 milestone issue 映射 |
+| [milestone-1-roadmap.md](./milestone-1-roadmap.md) | milestone 目标、阶段、当前状态、下一步和退出标准 |
 | [technical-architecture.md](./technical-architecture.md) | TSF TIP 技术架构、Rust core 边界、COM/profile/composition 设计 |
 | [adr-0001-tsf-tip-architecture.md](./adr-0001-tsf-tip-architecture.md) | #1 架构决策：推荐方案、放弃方案、接口、注册路径、风险和 demo 标准 |
 | [core-shell-boundary.md](./core-shell-boundary.md) | #2 Rust core 与 TSF shell 的 API、事件、错误和线程边界 |
@@ -23,10 +24,11 @@
 ## 阅读顺序
 
 1. 先读 [产品需求](./windows-ime-requirements.md)，确认当前要做的是系统级输入法，而不是只做文本注入工具。
-2. 再读 [架构决策 ADR](./adr-0001-tsf-tip-architecture.md)，确认为什么选择当前路线。
-3. 阅读 [技术架构](./technical-architecture.md) 和 [Core/Shell 边界](./core-shell-boundary.md)，确认 TSF shell、Rust core、ASR worker 和 UI 的边界。
-4. 用 [任务清单](./task-list.md) 对齐 GitHub milestone 的实现顺序。
-5. 需要新增模块或调整目录时，参考 [项目结构](./project-structure.md)。
+2. 再读 [Milestone 1 路线图](./milestone-1-roadmap.md)，确认阶段目标、当前状态和下一步。
+3. 再读 [架构决策 ADR](./adr-0001-tsf-tip-architecture.md)，确认为什么选择当前路线。
+4. 阅读 [技术架构](./technical-architecture.md) 和 [Core/Shell 边界](./core-shell-boundary.md)，确认 TSF shell、Rust core、ASR worker 和 UI 的边界。
+5. 用 [任务清单](./task-list.md) 对齐 GitHub milestone 的实现顺序。
+6. 需要新增模块或调整目录时，参考 [项目结构](./project-structure.md)。
 
 ## 维护规则
 

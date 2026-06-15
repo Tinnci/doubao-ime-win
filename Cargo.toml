@@ -7,6 +7,13 @@ description = "Windows voice input tool using Doubao ASR"
 license = "MIT"
 repository = "https://github.com/yourusername/doubao-ime-win"
 
+[workspace]
+members = [
+    ".",
+    "crates/tsf-tip",
+]
+resolver = "2"
+
 [dependencies]
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }

@@ -225,3 +225,5 @@ sequenceDiagram
 4. 在无 ASR 的情况下，用固定文本验证 composition update 和 commit。
 5. 接入 ASR event bridge，把 interim/final 映射到 composition/commit。
 6. 增加状态 UI、候选窗定位和 QA 矩阵。
+
+当前进度：第 1 步已完成；第 2 步已完成 DLL crate、COM 导出、class factory 和最小 activation/deactivation skeleton。真实 COM registry 写入、language profile 注册和系统加载验证属于第 3 步 / #4。

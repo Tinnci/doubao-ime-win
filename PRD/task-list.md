@@ -55,11 +55,14 @@
 
 ### #3 搭建 TSF Text Input Processor COM DLL 骨架
 
-- [ ] 新增 TIP DLL 工程或 crate。
-- [ ] 实现 COM class factory。
-- [ ] 导出 `DllGetClassObject`、`DllCanUnloadNow`、`DllRegisterServer`、`DllUnregisterServer`。
-- [ ] 实现最小 `ITfTextInputProcessorEx` activation/deactivation。
-- [ ] 添加 TIP 加载、激活、停用日志。
+- [x] 新增 TIP DLL 工程或 crate。
+- [x] 实现 COM class factory。
+- [x] 导出 `DllGetClassObject`、`DllCanUnloadNow`、`DllRegisterServer`、`DllUnregisterServer`。
+- [x] 实现最小 `ITfTextInputProcessorEx` activation/deactivation。
+- [x] 添加 TIP 加载、激活、停用日志。
+- [ ] 通过真实注册路径验证 TSF manager 能创建 TIP 实例。
+
+当前 `DllRegisterServer` / `DllUnregisterServer` 只返回 `SELFREG_E_CLASS` 占位，真实 COM registry 和 language profile 注册属于 #4。#3 的代码骨架已完成，但 GitHub issue #3 不应关闭，直到 #4 提供注册路径并完成 TSF manager 创建实例验证。
 
 ### #4 注册 language profile 并显示在 Windows 输入法列表
 
