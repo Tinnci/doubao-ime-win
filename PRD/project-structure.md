@@ -1,264 +1,179 @@
-# Doubao Voice Input - 项目目录结构（简化版）
+# Doubao Voice Input - 项目结构
 
-## 📁 推荐的项目目录结构
+**版本**: v3.0  
+**日期**: 2026-06-15  
+**目标**: 支持当前辅助工具和后续系统级 TSF TIP 共存
 
+## 1. 当前结构
+
+当前仓库仍是单 Rust package，主要源码在 `src/`：
+
+```text
+src/
+├── asr/                 # 豆包 ASR 协议、WebSocket client、响应解析
+├── audio/               # 麦克风采集和音频编码
+├── business/            # 当前辅助工具控制器、热键、SendInput 文本插入
+├── data/                # 配置和凭据
+├── ui/                  # 托盘和悬浮按钮
+├── voice_core/          # ASR/audio session 事件边界，供 fallback 和 TSF shell 复用
+├── lib.rs
+└── main.rs
 ```
-doubao-voice-input/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # GitHub Actions CI
+
+这个结构适合当前 `doubao-voice-input.exe`，但不足以承载系统级 TIP DLL、profile 注册工具和发布验证。
+
+## 2. 目标结构
+
+后续建议逐步迁移到 Cargo workspace，而不是在现有 `src/` 内继续堆 TSF 代码：
+
+```text
+doubao-ime-win/
+├── crates/
+│   ├── voice-core/
+│   │   ├── src/
+│   │   │   ├── asr/
+│   │   │   ├── audio/
+│   │   │   ├── config/
+│   │   │   ├── credential/
+│   │   │   └── session/
+│   │   └── Cargo.toml
+│   │
+│   ├── voice-app/
+│   │   ├── src/
+│   │   │   ├── main.rs
+│   │   │   ├── hotkey/
+│   │   │   ├── tray/
+│   │   │   ├── floating_button/
+│   │   │   └── sendinput_fallback/
+│   │   └── Cargo.toml
+│   │
+│   ├── tsf-tip/
+│   │   ├── src/
+│   │   │   ├── dll_exports.rs
+│   │   │   ├── class_factory.rs
+│   │   │   ├── text_service.rs
+│   │   │   ├── profile.rs
+│   │   │   ├── composition.rs
+│   │   │   ├── event_bridge.rs
+│   │   │   └── ui/
+│   │   └── Cargo.toml
+│   │
+│   └── tip-installer/
+│       ├── src/
+│       │   ├── main.rs
+│       │   ├── register.rs
+│       │   ├── unregister.rs
+│       │   └── diagnose.rs
+│       └── Cargo.toml
 │
 ├── assets/
-│   ├── icon.ico                   # 应用图标
-│   └── tray_icon.png              # 托盘图标
-│
-├── docs/
-│   └── user-guide.md              # 用户使用指南
-│
-├── PRD/
-│   ├── README.md                  # PRD 文档导航
-│   ├── windows-ime-requirements.md # 产品需求文档 v2.0
-│   ├── technical-architecture.md  # 技术架构设计 v2.0
-│   ├── task-list.md               # 开发任务清单
-│   └── project-structure.md       # 本文档
+│   ├── icon_idle.png
+│   ├── icon_recording.png
+│   ├── icon_processing.png
+│   └── tip/
+│       └── profile.ico
 │
 ├── scripts/
-│   └── build-portable.ps1         # Windows 便携版打包脚本
+│   ├── build-portable.ps1
+│   ├── register-tip.ps1
+│   └── unregister-tip.ps1
 │
-├── src/
-│   ├── main.rs                    # 程序入口
-│   │
-│   ├── ui/
-│   │   ├── mod.rs
-│   │   ├── floating_button.rs     # 悬浮按钮
-│   │   ├── system_tray.rs         # 系统托盘
-│   │   └── settings_window.rs     # 设置窗口
-│   │
-│   ├── business/
-│   │   ├── mod.rs
-│   │   ├── voice_controller.rs    # 语音输入控制器
-│   │   ├── text_inserter.rs       # 文本插入服务
-│   │   └── hotkey_manager.rs      # 热键管理
-│   │
-│   ├── asr/
-│   │   ├── mod.rs
-│   │   ├── client.rs              # ASR 客户端
-│   │   ├── protocol.rs            # 协议定义
-│   │   └── device_reg.rs          # 设备注册
-│   │
-│   ├── audio/
-│   │   ├── mod.rs
-│   │   ├── capture.rs             # 音频采集
-│   │   └── processor.rs           # PCM 处理
-│   │
-│   ├── data/
-│   │   ├── mod.rs
-│   │   ├── config.rs              # 配置管理
-│   │   └── credential.rs          # 凭据存储
-│   │
-│   └── utils/
-│       ├── mod.rs
-│       └── logger.rs              # 日志
+├── PRD/
+│   ├── README.md
+│   ├── windows-ime-requirements.md
+│   ├── technical-architecture.md
+│   ├── adr-0001-tsf-tip-architecture.md
+│   ├── core-shell-boundary.md
+│   ├── task-list.md
+│   └── project-structure.md
 │
 ├── tests/
-│   ├── integration_test.rs        # 集成测试
-│   └── unit/
-│       └── text_inserter_test.rs
+│   ├── manual/
+│   │   └── ime-qa-matrix.md
+│   └── fixtures/
 │
-├── .gitignore
-├── Cargo.toml                     # Rust 项目配置
+├── Cargo.toml
 ├── Cargo.lock
-├── config.toml.example            # 配置文件示例
-├── LICENSE
-├── README.md
-└── CHANGELOG.md                   # 版本变更日志
+├── config.toml.example
+└── README.md
 ```
 
----
+## 3. 迁移原则
 
-## 📦 便携版运行时目录结构
+- `voice-core` 不依赖 TSF、COM、Win32 UI 或 `SendInput`。
+- `voice-app` 承接当前热键/托盘/悬浮按钮体验，继续作为 fallback 和 ASR 调试入口。
+- `tsf-tip` 只处理系统输入法 shell：COM、profile、activation、composition、候选/状态 UI。
+- `tip-installer` 负责注册、卸载、诊断和开发期脚本入口。
+- 公共 GUID、profile 名称、产品名和资源路径集中定义，避免注册和卸载不一致。
 
-```
-doubao-voice-portable/
-├── doubao-voice-input.exe         # 主程序（单文件）
-├── config.toml                    # 配置文件
-├── credentials.json               # 凭据文件（加密，自动生成）
-├── logs/                          # 日志目录（可选）
-│   └── app.log
-├── README.md                      # 使用说明
-└── LICENSE
-```
+## 4. 当前模块迁移映射
 
-**目标体积**: < 15MB（所有文件）
+| 当前路径 | 目标归属 | 说明 |
+|----------|----------|------|
+| `src/asr` | `crates/voice-core/src/asr` | 保留协议和 ASR client，输出 core event |
+| `src/audio` | `crates/voice-core/src/audio` | 保留音频采集和编码 |
+| `src/data` | `crates/voice-core/src/config` / `credential` | 拆分配置和凭据 |
+| `src/voice_core` | `crates/voice-core/src/session` | 已抽出 ASR/audio session 事件边界，后续迁到 workspace |
+| `src/business/voice_controller.rs` | `voice-app` adapter | 已改为 fallback adapter，订阅 core events 后调用 `TextInserter` |
+| `src/business/text_inserter.rs` | `voice-app/sendinput_fallback` | 只作为 fallback，TSF 主路径不得依赖 |
+| `src/business/hotkey_manager.rs` | `voice-app/hotkey` | 系统级 TIP 不依赖全局热键 |
+| `src/ui` | `voice-app`，另建 `tsf-tip/ui` | 托盘/悬浮按钮和 TIP candidate/status UI 分离 |
 
----
+## 5. TSF TIP 模块边界
 
-## 🔧 开发环境配置
+`crates/tsf-tip` 内部建议分层：
 
-### 必需工具
-- Rust 1.70+ (stable)
-- Windows SDK 10.0.19041.0+
-- Visual Studio 2022 Build Tools（可选，用于某些依赖）
+| 模块 | 职责 |
+|------|------|
+| `dll_exports` | `DllGetClassObject`、`DllCanUnloadNow`、注册/卸载入口 |
+| `class_factory` | COM class factory 和引用计数 |
+| `text_service` | `ITfTextInputProcessorEx` activation/deactivation |
+| `profile` | language profile 注册、卸载和诊断 |
+| `composition` | TSF context、edit session、composition lifecycle |
+| `event_bridge` | core event 到 TSF edit session 的队列和节流 |
+| `ui` | 候选窗、状态 UI、DPI 和 caret 定位 |
 
-### 安装 Rust（中国镜像）
-```powershell
-# 设置镜像（加速下载）
-$env:RUSTUP_DIST_SERVER="https://mirrors.tuna.tsinghua.edu.cn/rustup"
-$env:RUSTUP_UPDATE_ROOT="https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup"
+## 6. 脚本和安装工具
 
-# 安装 Rust
-iwr https://win.rustup.rs -outfile rustup-init.exe
-.\rustup-init.exe
-```
+开发期脚本：
 
-### Cargo 配置（加速编译）
-创建 `~/.cargo/config.toml`:
-```toml
-[source.crates-io]
-replace-with = 'tuna'
-
-[source.tuna]
-registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
-
-[build]
-jobs = 4  # 并行编译作业数
+```text
+scripts/
+├── register-tip.ps1       # 构建后注册 TIP DLL 和 language profile
+├── unregister-tip.ps1     # 卸载 profile 和 COM registry
+└── build-portable.ps1     # 当前辅助工具便携构建
 ```
 
----
+发布期可以把脚本能力收敛到 `tip-installer`，并增加：
 
-## 📝 文件命名规范
+- 注册状态诊断。
+- 重复安装/卸载幂等检查。
+- 错误回滚。
+- 签名和发布包检查。
 
-### Rust 源文件
-- 模块: `snake_case.rs`
-- 示例: `voice_controller.rs`, `text_inserter.rs`
+## 7. 测试结构
 
-### 配置文件
-- TOML: `*.toml`
-- JSON: `*.json`
+系统级 IME 很难完全自动化，必须有手工 QA 文档：
 
-### 文档文件
-- Markdown: `kebab-case.md`
-- 示例: `user-guide.md`, `api-reference.md`
-
----
-
-## 🔄 Git 工作流
-
-### 分支策略（简化版）
-- `main` - 主分支（稳定版本）
-- `develop` - 开发分支
-- `feature/*` - 功能分支
-
-### Commit 规范
-```
-<type>: <subject>
-
-<body>
-```
-
-**Type**:
-- `feat`: 新功能
-- `fix`: 修复 bug
-- `docs`: 文档更新
-- `refactor`: 代码重构
-- `test`: 测试
-
-**示例**:
-```
-feat: add floating button UI
-
-- Implement draggable circular button
-- Add recording animation effect
-- Support position persistence
-```
-
----
-
-## 🚀 快速开始（开发）
-
-### 1. 克隆项目
-```bash
-git clone https://github.com/yourusername/doubao-voice-input.git
-cd doubao-voice-input
-```
-
-### 2. 安装依赖
-```bash
-cargo build
-```
-
-### 3. 运行开发版
-```bash
-cargo run
-```
-
-### 4. 构建 Release 版
-```bash
-cargo build --release
-```
-
-### 5. 打包便携版
-```powershell
-.\scripts\build-portable.ps1
-```
-
----
-
-## 📊 与原项目结构对比
-
-### 移除目录
-- ❌ `src/tsf_service/` - Windows TSF 框架（不再需要）
-- ❌ `src/candidate_engine/` - 候选词引擎
-- ❌ `src/dictionary/` - 用户词库
-
-### 简化结果
-| 指标 | 原结构 | 简化版 |
-|------|--------|--------|
-| 源码模块 | 15+ | 8 |
-| 代码文件数 | 30+ | 15 |
-| 预计代码行数 | 5000+ | 2000-3000 |
-
----
-
-## 🔍 代码组织原则
-
-### 模块职责
-- **ui/**: 纯 UI 逻辑，不包含业务逻辑
-- **business/**: 业务逻辑，协调各服务
-- **asr/**: ASR 协议实现，独立模块
-- **audio/**: 音频采集与处理
-- **data/**: 配置和凭据管理
-
-### 依赖关系
-```
-main.rs
-  ↓
-ui/ ←→ business/
-         ↓
-    asr/ + audio/
-         ↓
-       data/
-```
-
----
-
-## 🧪 测试目录
-
-### 单元测试
-```
-src/
-  business/
-    text_inserter.rs
-    #[cfg(test)]
-    mod tests { ... }
-```
-
-### 集成测试
-```
+```text
 tests/
-  integration_test.rs  # 端到端测试
+└── manual/
+    ├── ime-qa-matrix.md
+    ├── install-uninstall.md
+    ├── composition.md
+    └── app-compatibility.md
 ```
 
----
+最小 QA 覆盖：
 
-**最后更新**: 2026-02-05（简化版）
+- Windows 10/11 x64。
+- Notepad、Edge/Chrome、Office、WinUI/WPF、Electron。
+- 安装、切换、activation、composition、commit、cancel、卸载。
+- DPI、多显示器、焦点切换、重启后状态。
+
+## 8. 不再推荐的结构
+
+- 不再把 TSF 代码塞进当前 `business/` 模块。
+- 不再让 core 直接调用 `TextInserter` 或 TSF COM 对象。
+- 不再把候选窗和悬浮按钮复用为同一个 UI 模块。
+- 不再维护独立的旧“绿色便携工具 PRD”；相关内容已合并到当前文档的 fallback 说明。

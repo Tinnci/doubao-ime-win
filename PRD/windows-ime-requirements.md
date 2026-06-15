@@ -1,376 +1,130 @@
-# Windows 豆包语音输入工具产品需求文档
+# Doubao Voice Input - 系统级 IME / TSF TIP 产品需求
 
-**文档版本**: v2.0（简化版）  
-**创建日期**: 2026-02-05  
-**项目名称**: Doubao Voice Input（豆包语音输入）  
-**参考项目**: [doubaoime-asr](https://github.com/starccy/doubaoime-asr)  
-**设计理念**: 大道至简 - 专注纯粹的语音输入体验
+**版本**: v3.0  
+**日期**: 2026-06-15  
+**当前 milestone**: [系统级输入法 / TSF TIP](https://github.com/Tinnci/doubao-ime-win/milestone/1)
 
----
+## 1. 背景
 
-## 一、项目背景与目标
+项目当前已经具备语音识别、热键、托盘、悬浮按钮和 `SendInput` 文本注入能力。这个形态适合做轻量辅助工具，但不能作为真正的 Windows 输入法出现在系统输入法列表中，也无法通过 TSF composition 与目标应用建立标准输入关系。
 
-### 1.1 项目背景
-基于 [doubaoime-asr](https://github.com/starccy/doubaoime-asr) 项目，开发一款**极简的 Windows 语音输入工具**。不同于传统输入法，本项目专注于语音转文字这一核心功能。
+当前 milestone 的目标是把项目从辅助工具推进为系统级 Windows 输入法：注册 TSF language profile，成为可切换的 Text Input Processor (TIP)，并通过 TSF 管线完成组合态更新和最终文本提交。
 
-### 1.2 项目目标
-- 提供**纯粹的语音输入体验**，无传统 IME 复杂功能
-- 支持**快捷键**和**悬浮按钮**两种触发方式
-- 实现**绿色便携部署**，无需安装即可使用
-- 保持**最小化功能集**，专注实时语音识别
+## 2. 产品目标
 
-### 1.3 核心价值主张
-- **极简**: 功能单一纯粹，无冗余功能
-- **便捷**: 快捷键或悬浮按钮一键启动
-- **便携**: 绿色版，解压即用
-- **智能**: 豆包 ASR 语音识别，支持标点符号
+- 输入法出现在 Windows 设置和任务栏输入法列表中。
+- 用户切换到该输入法后，能触发 TSF TIP activation。
+- 语音识别中间结果以 composition 形式显示在当前文本上下文中。
+- 最终识别结果通过 TSF commit 正常提交到目标应用。
+- 具备候选窗、录音/识别/错误状态指示和光标定位能力。
+- 安装、卸载、升级、重启、禁用等系统级输入法生命周期可验证。
 
----
+## 3. 非目标
 
-## 二、功能需求（精简版）
+- 不实现完整拼音/五笔输入法、词库管理或键盘候选转换引擎。
+- 不把 `SendInput` 作为系统级 IME 主输入管线。
+- 不要求第一个 TSF demo 支持完整候选窗、主题系统或复杂设置界面。
+- 不存储用户语音数据，不做离线语音训练。
+- 不在未明确验证前承诺 arm64、企业部署或 Microsoft Store 分发。
 
-### 2.1 核心功能模块
+## 4. 用户场景
 
-#### 2.1.1 语音输入（唯一核心功能）
-| 功能项 | 优先级 | 描述 |
-|--------|--------|------|
-| 快捷键触发 | P0 | 支持组合键（Ctrl+Shift+V）或双击 Ctrl 启动/停止 |
-| 悬浮按钮触发 | P0 | 点击悬浮按钮启动/停止语音输入 |
-| 实时麦克风识别 | P0 | 实时采集麦克风音频并识别 |
-| 流式识别实时插入 | P0 | 中间结果直接插入到焦点窗口（实时可见） |
-| 智能文本修正 | P0 | 当ASR修正时，删除旧文本并插入新文本（退格+重插） |
-| 无缝编辑体验 | P0 | 用户全程关注输入框，无视线切换 |
-| VAD（语音活动检测） | P1 | 自动检测语音开始和结束 |
+| 场景 | 用户结果 |
+|------|----------|
+| 安装输入法 | Windows 输入法列表出现 Doubao Voice Input |
+| 切换输入法 | 任务栏输入指示器能切换到该输入法，并触发 TIP activation 日志 |
+| 语音输入 | 录音过程中能看到组合文本更新，结束后文本提交到目标应用 |
+| 取消输入 | composition 被清理，不留下半截文本 |
+| 应用切换 | 焦点变化后候选/状态 UI 不残留，TSF 上下文不死锁 |
+| 卸载 | language profile、COM registry 和安装文件清理干净 |
 
-> [!NOTE]
-> **ASR 自带功能**: 豆包 ASR 接口返回的文本已包含标点符号，无需额外处理
+## 5. 功能需求
 
-> [!NOTE]
-> **移除功能**: 不支持本地音频文件识别，仅支持实时麦克风输入
+### 5.1 TSF TIP 注册和激活
 
-> [!IMPORTANT]
-> **流式识别机制（实时插入）**: 
-> - 识别过程中，中间结果**直接插入**到焦点窗口（用户实时可见）
-> - 当 ASR 修正文本时（如"平果"→"苹果"），自动删除旧文本并重新插入
-> - 删除操作使用退格键（Backspace）模拟，保证自然的编辑体验
-> - 用户全程只需关注输入框，无需在识别窗口和输入框之间切换视线
+| 优先级 | 需求 |
+|--------|------|
+| P0 | 提供可构建的 TIP DLL，导出 `DllGetClassObject`、`DllCanUnloadNow` 和注册/卸载入口 |
+| P0 | 实现最小 `ITfTextInputProcessorEx` 生命周期 |
+| P0 | 使用 `ITfInputProcessorProfiles` 注册 language profile |
+| P0 | 输入法能在 Windows 设置和任务栏输入法列表显示并可切换 |
+| P1 | 支持图标、描述、语言标识和启用/禁用状态验证 |
 
-#### 2.1.2 用户界面（最小化）
-| 功能项 | 优先级 | 描述 |
-|--------|--------|------|
-| 悬浮按钮 | P0 | 可拖动的小型悬浮按钮（录音时显示动画效果） |
-| 系统托盘图标 | P0 | 最小化到系统托盘，右键菜单（设置/退出） |
-| 设置界面 | P1 | 简单的设置窗口（快捷键、悬浮按钮配置） |
+### 5.2 Composition 和文本提交
 
-> [!NOTE]
-> **简化点**: 
-> - 移除独立的识别状态窗口（识别结果直接在输入框显示）
-> - 悬浮按钮录音时显示动画，用户即可知道正在录音
-> - 无候选词窗口、无输入法状态切换、无主题切换
+| 优先级 | 需求 |
+|--------|------|
+| P0 | 支持开始、更新、提交、取消 composition |
+| P0 | ASR interim 结果映射为 composition update |
+| P0 | ASR final 结果映射为 commit |
+| P0 | 通过 TSF edit session 修改上下文，避免跨线程直接操作 TSF 对象 |
+| P1 | 在 Notepad、Edge/Chrome、WinUI/WPF 文本框中完成基础验证 |
 
-#### 2.1.3 配置与管理
-| 功能项 | 优先级 | 描述 |
-|--------|--------|------|
-| 设备自动注册 | P0 | 首次运行自动注册设备并保存凭据 |
-| 凭据本地存储 | P0 | 安全存储 device_id 和 token |
-| 快捷键配置 | P1 | 支持组合键（Ctrl+Shift+V）或双击模式（双击 Ctrl） |
-| 悬浮按钮开关 | P1 | 允许用户显示/隐藏悬浮按钮 |
+### 5.3 ASR core 复用
 
----
+| 优先级 | 需求 |
+|--------|------|
+| P0 | 保留现有豆包 ASR 协议、音频采集、配置和凭据能力 |
+| P0 | 把 ASR session 与 UI/输入提交解耦，输出稳定的状态事件 |
+| P0 | 支持错误、取消、超时、认证失败和网络失败事件 |
+| P1 | 保留现有辅助工具入口作为开发期 fallback |
 
-### 2.2 非功能需求
+### 5.4 候选窗和状态 UI
 
-#### 2.2.1 性能要求
-- **语音识别延迟**: < 500ms
-- **内存占用**: < 100MB（大幅降低）
-- **CPU 使用率**: 待机 < 3%，识别时 < 15%
-- **启动速度**: < 2 秒
+| 优先级 | 需求 |
+|--------|------|
+| P1 | 显示录音、识别中、提交中、错误等状态 |
+| P1 | 候选/状态窗口跟随 TSF caret rectangle 定位 |
+| P1 | 支持 DPI 缩放、多显示器和焦点变化后的清理 |
+| P2 | 支持暗色模式和更完整的候选选择交互 |
 
-#### 2.2.2 兼容性要求
-- **操作系统**: Windows 10/11 (x64)
-- **焦点窗口兼容**: 支持主流应用（记事本、Word、浏览器、VS Code 等）
+### 5.5 安装、卸载和发布
 
-#### 2.2.3 便携性要求
-- **独立运行**: 无需 Python/Node.js 等运行时
-- **绿色部署**: 单一可执行文件 + 配置文件
-- **体积**: < 20MB（包含所有依赖）
+| 优先级 | 需求 |
+|--------|------|
+| P0 | 提供开发期注册/卸载脚本或工具 |
+| P0 | 卸载后清理 COM registry、profile 和安装文件 |
+| P1 | 建立签名、Defender/SmartScreen、崩溃日志收集方案 |
+| P1 | 建立升级和重启后的 profile 保持验证 |
 
-#### 2.2.4 安全性要求
-- **凭据加密**: Windows DPAPI 加密
-- **网络安全**: HTTPS/WSS 通信
-- **隐私**: 不记录语音数据
+## 6. 非功能需求
 
----
-
-## 三、技术架构方案（简化版）
-
-### 3.1 技术选型
-
-**推荐方案**: Rust + Windows API
-
-| 组件 | 技术 |
+| 类别 | 要求 |
 |------|------|
-| 编程语言 | Rust |
-| UI 框架 | `tauri`（悬浮按钮、设置界面）或 `egui` |
-| 全局热键 | `global-hotkey` |
-| 文本插入 | Windows `SendInput` API |
-| 语音识别 | 移植 doubaoime-asr 协议 |
-| 音频采集 | `cpal` |
-| 异步运行时 | `tokio` |
+| 兼容性 | Windows 10/11 x64 是 P0；arm64 暂列 P2 |
+| 稳定性 | TIP activation/deactivation 不应崩溃目标应用或导致 TSF 死锁 |
+| 延迟 | ASR interim 到 composition update 的用户可见延迟目标 < 500ms |
+| 安全 | 凭据继续使用本地安全存储；不记录原始语音 |
+| 可诊断 | TIP 加载、activation、profile 注册、ASR 状态、错误路径必须有日志 |
+| 可回滚 | 开发期必须能安全卸载并恢复系统输入法状态 |
 
-> [!NOTE]
-> **移除组件**: 不需要 Windows TSF 框架，大幅简化技术栈
+## 7. MVP 验收标准
 
----
+最小可行 demo 不要求完整候选窗，但必须满足：
 
-### 3.2 简化架构设计
+- DLL 可构建并注册。
+- Windows 输入法列表中能看到该输入法。
+- 用户可切换到该输入法并触发 TIP activation。
+- 在 Notepad 和现代浏览器输入框中能更新 composition 并提交 final 文本。
+- 取消、错误、卸载路径不会遗留 composition、悬浮 UI 或 registry/profile 项。
 
-```mermaid
-graph TB
-    subgraph "用户交互层"
-        A[悬浮按钮<br/>可拖动小窗口]
-        B[全局热键监听<br/>Ctrl+Shift+V]
-        C[系统托盘<br/>设置/退出]
-    end
-    
-    subgraph "业务逻辑层"
-        D[语音输入控制器<br/>VoiceInputController]
-        E[文本插入服务<br/>TextInserter]
-    end
-    
-    subgraph "核心服务层"
-        F[ASR 客户端<br/>Doubao Protocol]
-        G[音频采集服务<br/>cpal]
-        H[音频处理<br/>PCM Resampler]
-    end
-    
-    subgraph "数据层"
-        I[配置管理<br/>config.toml]
-        J[凭据存储<br/>DPAPI 加密]
-    end
-    
-    A --> D
-    B --> D
-    C --> I
-    D --> E
-    D --> F
-    F --> G
-    F --> H
-    F --> J
-    E --> |SendInput API| K[Windows 系统]
-```
+## 8. Milestone issue 映射
 
-**模块说明**:
-- **语音输入控制器**: 协调语音识别和文本插入
-- **文本插入服务**: 使用 Windows SendInput API 模拟键盘输入
-- **ASR 客户端**: 复用 doubaoime-asr 协议
-- **无需 TSF**: 不实现传统 IME 框架
+| Issue | 需求覆盖 |
+|-------|----------|
+| [#1 调研 TSF TIP 最小可行架构和风险边界](https://github.com/Tinnci/doubao-ime-win/issues/1) | 架构决策、风险、demo 成功标准 |
+| [#2 定义 Rust 核心与 TSF shell 的边界](https://github.com/Tinnci/doubao-ime-win/issues/2) | ASR core 复用、线程和生命周期边界 |
+| [#3 搭建 TSF Text Input Processor COM DLL 骨架](https://github.com/Tinnci/doubao-ime-win/issues/3) | COM DLL、TIP 生命周期、日志 |
+| [#4 注册 language profile 并显示在 Windows 输入法列表](https://github.com/Tinnci/doubao-ime-win/issues/4) | profile 注册、切换、卸载清理 |
+| [#5 实现 TSF composition 会话和文本提交模型](https://github.com/Tinnci/doubao-ime-win/issues/5) | composition/update/commit/cancel |
+| [#6 实现候选窗、模式状态和光标定位](https://github.com/Tinnci/doubao-ime-win/issues/6) | candidate/status UI、DPI、焦点清理 |
+| [#7 把 ASR 流式结果接入 TSF 输入管线](https://github.com/Tinnci/doubao-ime-win/issues/7) | ASR event 到 TSF edit session 的桥接 |
+| [#8 建立系统级 IME 兼容性和发布 QA 矩阵](https://github.com/Tinnci/doubao-ime-win/issues/8) | QA checklist、release blocker、发布验证 |
 
----
+## 9. 旧路线处理
 
-## 四、开发计划（简化版）
+旧文档中的“绿色便携、无需 TSF、使用 `SendInput` 作为主路径”已不再代表当前产品目标。相关实现仍可保留为辅助工具和回退路径，用于：
 
-### 4.1 里程碑规划（7 周）
-
-#### Phase 1: 基础框架（2 周）
-- [ ] Rust 项目初始化
-- [ ] 全局热键注册
-- [ ] 系统托盘集成
-- [ ] 悬浮按钮 UI
-
-#### Phase 2: 语音识别集成（2 周）
-- [ ] ASR 协议移植
-- [ ] 音频采集与处理
-- [ ] 实时语音识别测试
-
-#### Phase 3: 文本插入与 UI（2 周）
-- [ ] Windows SendInput 实现
-- [ ] 识别状态窗口
-- [ ] 设置界面
-
-#### Phase 4: 打包与测试（1 周）
-- [ ] 绿色打包
-- [ ] 集成测试
-- [ ] 性能优化
-
----
-
-### 4.2 技术风险评估
-
-| 风险项 | 风险等级 | 缓解措施 |
-|--------|----------|----------|
-| SendInput 兼容性问题 | 中 | 测试主流应用，提供降级方案 |
-| 豆包 ASR 协议变更 | 中 | 协议版本检测 |
-| 全局热键冲突 | 低 | 允许用户自定义 |
-
----
-
-## 五、关键 API 与协议
-
-### 5.1 Doubao ASR 协议（与原需求相同）
-
-#### 设备注册
-```
-POST /register_device
-→ 返回 token
-```
-
-#### 实时语音识别
-```
-WebSocket /asr/realtime
-发送: PCM 音频数据（16kHz, 单声道）
-接收: INTERIM_RESULT / FINAL_RESULT
-```
-
-### 5.2 Windows 文本插入 API
-
-```rust
-use windows::Win32::UI::Input::KeyboardAndMouse::*;
-
-// 模拟键盘输入插入文本
-fn insert_text(text: &str) {
-    let mut inputs = vec![];
-    for ch in text.encode_utf16() {
-        // 构造 INPUT 结构
-        inputs.push(create_unicode_input(ch, true));  // key down
-        inputs.push(create_unicode_input(ch, false)); // key up
-    }
-    unsafe {
-        SendInput(&inputs, size_of::<INPUT>() as i32);
-    }
-}
-```
-
----
-
-## 六、用户交互流程（简化版）
-
-### 6.1 语音输入流程
-
-```mermaid
-sequenceDiagram
-    participant User as 用户
-    participant UI as 悬浮按钮/热键
-    participant Controller as 语音控制器
-    participant ASR as ASR 客户端
-    participant System as Windows 系统
-    
-    User->>UI: 点击按钮 / Ctrl+Shift+V
-    UI->>Controller: 启动语音输入
-    Controller->>ASR: 开始实时识别
-    
-    loop 语音识别
-        ASR-->>Controller: 中间结果
-        Controller->>UI: 更新识别窗口
-    end
-    
-    User->>UI: 再次点击 / 释放热键
-    ASR-->>Controller: 最终结果
-    Controller->>System: SendInput 插入文本
-    System->>User: 文本出现在焦点窗口
-```
-
----
-
-## 七、配置文件结构（简化版）
-
-### 7.1 config.toml
-```toml
-[general]
-auto_start = false
-language = "zh-CN"
-
-[hotkey]
-mode = "double_tap"  # "combo" 或 "double_tap"
-combo_key = "Ctrl+Shift+V"  # 组合键模式
-double_tap_key = "Ctrl"      # 双击键模式
-double_tap_interval = 300    # 双击间隔（毫秒）
-
-[floating_button]
-enabled = true
-position_x = 100  # 记忆位置
-position_y = 100
-
-[asr]
-vad_enabled = true  # 语音活动检测
-```
-
-### 7.2 credentials.json（加密）
-```json
-{
-  "device_id": "xxxxx",
-  "token": "encrypted_token"
-}
-```
-
----
-
-## 八、测试策略（简化版）
-
-### 8.1 功能测试
-- 热键触发测试（多种组合键）
-- 悬浮按钮拖动与点击测试
-- 文本插入测试（记事本、Word、浏览器）
-- 语音识别准确率测试
-
-### 8.2 性能测试
-- 内存占用监控（目标 < 100MB）
-- CPU 使用率测试
-- 启动速度测试（目标 < 2s）
-
-### 8.3 兼容性测试
-- Windows 10/11 测试
-- 主流应用兼容性测试
-
----
-
-## 九、交付物清单（简化版）
-
-- [ ] `doubao-voice-input.exe` - 主程序（单文件）
-- [ ] `config.toml` - 配置文件
-- [ ] `README.md` - 使用说明
-- [ ] `LICENSE` - 开源协议
-
----
-
-## 十、与原需求对比
-
-### 移除功能
-- ❌ 传统 IME 框架（Windows TSF）
-- ❌ 候选词窗口
-- ❌ 中英文切换
-- ❌ 输入法状态管理
-- ❌ 用户词库
-- ❌ 本地音频文件识别
-- ❌ 主题切换
-
-### 保留核心
-- ✅ 实时语音识别（豆包 ASR）
-- ✅ 快捷键触发
-- ✅ 悬浮按钮（新增）
-- ✅ 绿色便携部署
-- ✅ 凭据安全存储
-
-### 开发时间
-- **原计划**: 11 周
-- **简化版**: 7 周（减少 36%）
-
----
-
-## 附录
-
-### A. 参考资源
-- [doubaoime-asr](https://github.com/starccy/doubaoime-asr)
-- [global-hotkey](https://github.com/tauri-apps/global-hotkey)
-- [Windows SendInput API](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput)
-
-### B. 免责声明
-> [!WARNING]
-> 本项目基于豆包输入法客户端协议分析实现，非官方 API。
-> - 仅供学习研究
-> - 协议可能随时变更
-
----
-
-**文档版本**: v2.0（简化版 - 大道至简）  
-**最后更新**: 2026-02-05
+- 开发期快速验证 ASR 协议和音频采集。
+- 在 TSF TIP 尚不可用时提供临时输入能力。
+- 对比 TSF composition 与键盘模拟输入的兼容性差异。

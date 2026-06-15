@@ -1,120 +1,114 @@
-# Doubao Voice Input - Development Task List（简化版）
+# Doubao Voice Input - TSF TIP 任务清单
 
-## 项目概览
-纯语音输入工具开发任务清单（已大幅简化）
+**版本**: v3.0  
+**日期**: 2026-06-15  
+**来源**: [GitHub milestone #1 系统级输入法 / TSF TIP](https://github.com/Tinnci/doubao-ime-win/milestone/1)
 
----
+## 当前原则
 
-## Phase 1: 项目初始化与基础框架（2 周）
-- [ ] 初始化 Rust 项目
-- [ ] 配置 Cargo.toml（依赖管理）
-- [ ] 设置日志系统（tracing）
-- [ ] 创建项目目录结构
-- [ ] 实现全局热键监听（global-hotkey）
-- [ ] 实现系统托盘图标与菜单
-- [ ] 测试热键注册与托盘功能
+- 按依赖顺序推进，不直接从 ASR 接 TSF 开始。
+- 先验证 TIP 可注册、可加载、可激活，再做 composition 和 ASR event bridge。
+- 当前 `SendInput` 输入路径保留为 fallback，不再扩展成主架构。
+- 每个实现任务结束时同步更新对应 issue 的验收情况。
 
----
+## 推进顺序
 
-## Phase 2: 语音识别集成（2 周）
-- [ ] 移植 doubaoime-asr 协议到 Rust
-  - [ ] 实现设备注册
-  - [ ] 实现 HTTP 客户端
-  - [ ] 实现 WebSocket 客户端
-- [ ] 解析 ASR 响应（INTERIM_RESULT, FINAL_RESULT）
-- [ ] 实现音频采集（cpal）
-- [ ] 实现 PCM 音频重采样（rubato）
-- [ ] 实现实时语音识别流程
-- [ ] 测试 ASR 端到端流程
+| 顺序 | Issue | 优先级 | 目标 |
+|------|-------|--------|------|
+| 1 | [#1 调研 TSF TIP 最小可行架构和风险边界](https://github.com/Tinnci/doubao-ime-win/issues/1) | P0 | 锁定最小架构、风险、demo 成功标准 |
+| 2 | [#2 定义 Rust 核心与 TSF shell 的边界](https://github.com/Tinnci/doubao-ime-win/issues/2) | P0 | 抽出 ASR/core API，避免 TSF 细节污染业务逻辑 |
+| 3 | [#3 搭建 TSF Text Input Processor COM DLL 骨架](https://github.com/Tinnci/doubao-ime-win/issues/3) | P0 | 构建可注册、可被 TSF manager 加载的 TIP DLL |
+| 4 | [#4 注册 language profile 并显示在 Windows 输入法列表](https://github.com/Tinnci/doubao-ime-win/issues/4) | P0 | 注册 profile，支持切换和卸载清理 |
+| 5 | [#5 实现 TSF composition 会话和文本提交模型](https://github.com/Tinnci/doubao-ime-win/issues/5) | P1 | 用 TSF composition/update/commit 替代主路径输入注入 |
+| 6 | [#7 把 ASR 流式结果接入 TSF 输入管线](https://github.com/Tinnci/doubao-ime-win/issues/7) | P1 | 将 interim/final/error 映射到 TSF event bridge |
+| 7 | [#6 实现候选窗、模式状态和光标定位](https://github.com/Tinnci/doubao-ime-win/issues/6) | P1 | 添加候选/状态 UI、caret 定位、DPI 和焦点清理 |
+| 8 | [#8 建立系统级 IME 兼容性和发布 QA 矩阵](https://github.com/Tinnci/doubao-ime-win/issues/8) | P1 | 建立可重复执行的手工 QA 和 release blocker 标准 |
 
----
+[#9 Epic: 系统级输入法 / TSF TIP 路线图](https://github.com/Tinnci/doubao-ime-win/issues/9) 只做总控跟踪，不承载具体实现。
 
-## Phase 3: 文本插入与 UI（2 周）
-- [ ] 实现 Windows SendInput 文本插入
-  - [ ] Unicode 字符插入
-  - [ ] 退格键删除（用于流式修正）
-- [ ] 测试文本插入兼容性（记事本、Word、浏览器）
-- [ ] 实现悬浮按钮 UI
-  - [ ] 设计悬浮按钮样式（圆形、渐变）
-  - [ ] 实现拖动功能
-  - [ ] 实现点击切换录音状态
-  - [ ] 录音时动画效果
-- [ ] 实现设置界面
-  - [ ] 热键配置（组合键/双击模式）
-  - [ ] 悬浮按钮开关
+## Phase 0: 文档和架构收敛
 
----
+- [x] 合并旧 PRD，删除过时的“无需 TSF”主路线。
+- [x] 明确 `SendInput` 是 fallback，不是系统级 IME 主路径。
+- [x] 建立 TSF TIP 产品需求、技术架构、任务清单和目标目录结构。
+- [x] 在 #1 中记录最终架构决策：Rust TIP shell、C++ TIP shell，或混合方案。
 
-## Phase 4: 配置与凭据管理（1 周）
-- [ ] 实现配置文件解析（config.toml）
-- [ ] 实现凭据加密存储（Windows DPAPI）
-- [ ] 实现设备自动注册
-- [ ] 实现配置持久化
-- [ ] 测试配置加载与保存
+## Phase 1: P0 架构和边界
 
----
+### #1 调研 TSF TIP 最小可行架构和风险边界
 
-## Phase 5: 打包与测试（1 周）
-- [ ] 配置 Release 构建优化
-- [ ] 编写绿色打包脚本（PowerShell）
-- [ ] 静态链接所有依赖
-- [ ] 集成测试
-  - [ ] 热键功能测试
-  - [ ] 悬浮按钮测试
-  - [ ] 文本插入测试（多应用）
-  - [ ] 语音识别测试
-- [ ] 性能测试
-  - [ ] 内存占用（目标 < 100MB）
-  - [ ] CPU 使用率
-  - [ ] 启动速度（目标 < 2s）
-- [ ] 兼容性测试（Windows 10/11）
+- [x] 列出必须实现的 TSF/COM 接口。
+- [x] 明确 TIP DLL 注册和 language profile 注册路径。
+- [x] 比较 Rust `cdylib` shell、C++ shell、混合方案的成本。
+- [x] 明确 app-container、签名、Defender、权限和 Windows 版本风险。
+- [x] 定义 demo 成功标准：输入法可见、可切换、可提交固定文本。
 
----
+### #2 定义 Rust 核心与 TSF shell 的边界
 
-## Phase 6: 文档与发布（1 周）
-- [ ] 编写用户使用指南
-- [ ] 录制演示视频
-- [ ] 创建 GitHub Releases
-- [ ] 发布 v1.0.0 版本
+- [x] 定义 core API：initialize/start/stop/cancel/subscribe/shutdown。
+- [x] 把 ASR session、配置、凭据、状态事件从当前控制器中解耦。
+- [x] 定义 TSF shell 接收的事件类型和错误模型。
+- [x] 明确线程模型：ASR worker 不持有 TSF COM 指针。
+- [x] 确保现有 exe/fallback 路径仍可构建和运行。
 
----
+## Phase 2: 最小 TIP 可加载
 
-## 技术风险评估（简化版）
+### #3 搭建 TSF Text Input Processor COM DLL 骨架
 
-| 风险项 | 风险等级 | 缓解措施 | 状态 |
-|--------|----------|----------|------|
-| SendInput 兼容性问题 | 中 | 测试主流应用，提供降级方案 | 🟡 待验证 |
-| 豆包 ASR 协议变更 | 中 | 协议版本检测，日志记录 | 🟡 待验证 |
-| 全局热键冲突 | 低 | 允许用户自定义 | 🟢 可控 |
-| 音频设备兼容性 | 低 | 使用 cpal 默认设备，提供设备选择 | 🟢 可控 |
+- [ ] 新增 TIP DLL 工程或 crate。
+- [ ] 实现 COM class factory。
+- [ ] 导出 `DllGetClassObject`、`DllCanUnloadNow`、`DllRegisterServer`、`DllUnregisterServer`。
+- [ ] 实现最小 `ITfTextInputProcessorEx` activation/deactivation。
+- [ ] 添加 TIP 加载、激活、停用日志。
 
----
+### #4 注册 language profile 并显示在 Windows 输入法列表
 
-## 当前状态
-**Phase**: 需求分析与文档编写  
-**完成**: 0/6 阶段  
-**总预计时间**: 7 周（相比原计划减少 4 周）  
-**Blockers**: 无
+- [ ] 定义 CLSID、profile GUID、描述、图标和语言标识。
+- [ ] 使用 `ITfInputProcessorProfiles` 注册 profile。
+- [ ] 提供开发期注册/卸载脚本或工具。
+- [ ] 验证 Windows 设置和任务栏输入指示器可见。
+- [ ] 验证卸载后 profile 和 registry 清理干净。
 
----
+## Phase 3: TSF 输入主路径
 
-## 与原计划对比
+### #5 实现 TSF composition 会话和文本提交模型
 
-### 移除阶段
-- ❌ Phase 2: Windows TSF Integration（4 周）
-- ❌ Phase 3: Candidate Window UI（原独立阶段，已简化到 UI 阶段）
+- [ ] 管理 document manager、context 和 edit session。
+- [ ] 建立 composition 生命周期状态机。
+- [ ] 支持固定文本的 composition update 和 final commit。
+- [ ] 支持 cancel 和错误清理。
+- [ ] 在 Notepad、Edge/Chrome、WinUI/WPF 文本框中验证。
 
-### 新增/调整阶段
-- ✅ Phase 1: 增加悬浮按钮功能
-- ✅ Phase 3: 合并 UI 开发（悬浮按钮 + 识别窗口 + 设置）
-- ✅ Phase 4: 简化配置管理
+### #7 把 ASR 流式结果接入 TSF 输入管线
 
-### 时间节省
-| 项目 | 原计划 | 简化版 | 节省 |
-|------|--------|--------|------|
-| 总时间 | 11 周 | 7 周 | 4 周 (-36%) |
-| 核心模块 | 15+ | 8 | 7 个模块 |
+- [ ] 把 core `InterimText` 转成 composition update。
+- [ ] 把 core `FinalText` 转成 commit。
+- [ ] 处理认证失败、网络错误、超时、取消和重试。
+- [ ] 给 event bridge 增加节流、合并和过期事件丢弃。
+- [ ] 验证错误路径不会造成 TSF 死锁、崩溃或遗留 composition。
 
----
+## Phase 4: UI 和发布验证
 
-**最后更新**: 2026-02-05
+### #6 实现候选窗、模式状态和光标定位
+
+- [ ] 实现候选/状态窗口显示、更新、隐藏。
+- [ ] 根据 TSF layout/caret rectangle 定位。
+- [ ] 显示录音、识别中、提交、错误状态。
+- [ ] 处理 DPI、多显示器、暗色模式和窗口焦点变化。
+- [ ] 验证焦点切换、窗口移动、DPI 缩放下不残留 UI。
+
+### #8 建立系统级 IME 兼容性和发布 QA 矩阵
+
+- [ ] 覆盖 Windows 10/11、管理员/普通用户、x64。
+- [ ] 覆盖 Notepad、Edge/Chrome、Office、WinUI/WPF、Electron、终端类应用。
+- [ ] 覆盖安装、升级、卸载、重启后 profile 保持和清理。
+- [ ] 定义 release blocker：崩溃、死锁、profile 残留、无法卸载、凭据泄露。
+- [ ] 记录签名、Defender/SmartScreen、崩溃日志和诊断收集要求。
+
+## 关闭 milestone 的标准
+
+- 输入法能注册到 Windows 输入法列表。
+- 用户可以切换到该输入法并触发 TSF activation。
+- 至少在 Notepad 和现代浏览器输入框内完成 composition 更新和 final commit。
+- 安装、卸载、重启后状态可验证。
+- QA checklist 有明确结果，release blocker 全部关闭或降级说明。

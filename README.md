@@ -1,42 +1,32 @@
 # Doubao Voice Input (豆包语音输入)
 
-Windows 语音输入工具，基于豆包 ASR 实现实时语音识别。
+Windows 语音输入项目，基于豆包 ASR 实现实时识别。当前可运行版本是热键/托盘/悬浮按钮驱动的语音输入辅助工具；当前主线 milestone 是把它推进为系统级 Windows 输入法，也就是 TSF Text Input Processor (TIP)。
 
-## 功能特性
+## 当前状态
 
-- 🎤 **实时语音识别** - 基于豆包 ASR 的高精度语音识别
-- ⌨️ **双击Ctrl触发** - 快速双击 Ctrl 键开始/停止语音输入
-- 📍 **悬浮按钮** - 现代风格可拖动悬浮按钮，左键切换录音，右键退出
-- 🔄 **流式识别** - 实时显示识别结果，支持文本修正
-- 🖥️ **系统托盘** - 托盘图标菜单控制，右键访问设置和退出
-- 📦 **绿色便携** - 单文件可执行，无需安装
+| 方向 | 状态 | 说明 |
+|------|------|------|
+| ASR 识别核心 | 已有基础实现 | 设备注册、WebSocket ASR、音频采集和 Opus 编码已在现有 Rust 代码中实现 |
+| 辅助工具入口 | 已有基础实现 | 支持热键、托盘、悬浮按钮，并通过 `SendInput` 向焦点窗口输入文本 |
+| 系统级 IME/TIP | milestone 规划中 | 需要新增 TSF COM DLL、language profile 注册、composition、候选/状态 UI 和安装卸载流程 |
+| 发布能力 | 待完善 | 便携构建脚本已有基础，系统级 IME 还需要注册、签名、卸载和 QA 矩阵 |
 
-## 快速开始
+`SendInput` 路径保留为兼容/回退能力，但不再是系统级输入法主路径。后续主路径应通过 TSF composition 和 commit API 向目标应用提交文本。
 
-### 下载使用
+## 目标能力
 
-1. 从 [Releases](https://github.com/EvanDbg/doubao-ime-win/releases) 下载最新版本
-2. 解压到任意目录
-3. 运行 `doubao-voice-input.exe`
-4. 首次运行会自动注册设备
+- 出现在 Windows 输入法/键盘列表中，并可由用户切换到该输入法。
+- 注册 TSF language profile，激活后能触发 TIP `Activate`/`Deactivate` 生命周期。
+- 将 ASR interim 结果映射为 TSF composition update，将 final 结果映射为文本提交。
+- 提供录音、识别中、提交、错误等输入状态 UI，并支持候选窗/光标定位。
+- 提供可重复执行的安装、卸载、升级、签名和兼容性验证流程。
 
-### 使用方法
+## 当前可运行功能
 
-1. **快捷键** (双击 Ctrl):
-   - 快速双击 `Ctrl` 键开始语音输入
-   - 再次双击停止录音，文本自动插入到当前焦点窗口
-
-2. **悬浮按钮**:
-   - 🟣 紫色 = 待机状态
-   - 🔴 红色 = 正在录音
-   - 🟠 橙色 = 处理中
-   - **左键点击** = 开始/停止录音
-   - **右键点击** = 退出程序（有确认提示）
-   - **拖动** = 调整位置
-
-3. **系统托盘**:
-   - 右键托盘图标打开菜单
-   - 菜单项：开始/停止语音输入、设置、退出
+- 基于豆包 ASR 的实时语音识别。
+- 双击 Ctrl 或配置的热键启动/停止语音输入。
+- 悬浮按钮和系统托盘入口。
+- 通过 `SendInput` 向当前焦点窗口输入文本，并支持流式结果的增量修正。
 
 ## 配置文件
 
@@ -51,7 +41,7 @@ language = "zh-CN"
 mode = "double_tap"
 combo_key = "Ctrl+Shift+V"
 double_tap_key = "Ctrl"
-double_tap_interval = 300  # 毫秒
+double_tap_interval = 300
 
 [floating_button]
 enabled = true
@@ -66,58 +56,46 @@ vad_enabled = true
 
 ### 环境要求
 
-- Rust 1.70+ (stable)
+- Rust stable
 - Windows 10/11 x64
 - Visual Studio Build Tools 2022
 - CMake
-- Protobuf Compiler (protoc)
+- Protobuf Compiler (`protoc`)
 
-### 构建步骤
+### 构建
 
 ```powershell
-# 克隆项目
-git clone https://github.com/EvanDbg/doubao-ime-win.git
-cd doubao-ime-win
-
-# 构建 Release 版本
+cargo build
 cargo build --release
-
-# 可执行文件位置
-# target/release/doubao-voice-input.exe
 ```
 
-### GitHub Actions
+当前 release 产物仍是辅助工具可执行文件：
 
-项目已配置 GitHub Actions 自动构建：
-- 推送到 `main` 分支时自动构建
-- 创建 `v*` 标签时自动发布 Release
+```text
+target/release/doubao-voice-input.exe
+```
 
-## 技术架构
+系统级 TSF TIP DLL、profile 注册工具和安装包还在 milestone 实现范围内。
 
-| 模块 | 技术 |
-|------|------|
-| 语言 | Rust |
-| 语音识别 | 豆包 ASR (doubaoime-asr 协议) |
-| 音频采集 | cpal |
-| 音频编码 | Opus |
-| 热键监听 | rdev (双击检测) |
-| 系统托盘 | tray-icon |
-| 悬浮按钮 | Win32 API (Layered Window) |
-| 文本输入 | Windows SendInput API |
+## 文档
+
+- [产品需求](PRD/windows-ime-requirements.md)
+- [技术架构](PRD/technical-architecture.md)
+- [架构决策 ADR](PRD/adr-0001-tsf-tip-architecture.md)
+- [Core/Shell 边界](PRD/core-shell-boundary.md)
+- [任务清单](PRD/task-list.md)
+- [项目结构](PRD/project-structure.md)
+
+## 技术架构概览
+
+| 模块 | 当前实现 | TSF milestone 目标 |
+|------|----------|--------------------|
+| ASR core | Rust async client、audio capture、protocol parsing | 抽成可被 TIP shell 调用的稳定 core API |
+| 输入提交 | `SendInput` 文本注入 | TSF composition/edit session/commit |
+| 入口 | 热键、托盘、悬浮按钮 | Windows 输入法切换和 TIP activation |
+| UI | 悬浮按钮、托盘 | 候选窗、状态指示、光标定位、DPI/多显示器适配 |
+| 分发 | 便携 exe | 安装/卸载、language profile 注册、签名发布 |
 
 ## 免责声明
 
-> ⚠️ **注意**
-> 
-> 本项目基于豆包输入法客户端协议分析实现，非官方 API。
-> - 仅供学习研究使用
-> - 协议可能随时变更导致功能失效
-> - 请遵守相关法律法规
-
-## 许可证
-
-MIT License
-
-## 致谢
-
-- [doubaoime-asr](https://github.com/starccy/doubaoime-asr) - 豆包 ASR 协议参考实现
+本项目基于豆包输入法客户端协议分析实现，非官方 API，仅供学习研究使用。协议可能变更，使用时需遵守相关法律法规和服务条款。
