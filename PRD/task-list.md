@@ -1,7 +1,7 @@
 # Doubao Voice Input - TSF TIP 任务清单
 
-**版本**: v3.0  
-**日期**: 2026-06-15  
+**版本**: v3.2
+**日期**: 2026-06-16
 **来源**: [GitHub milestone #1 系统级输入法 / TSF TIP](https://github.com/Tinnci/doubao-ime-win/milestone/1)
 
 ## 当前原则
@@ -62,15 +62,56 @@
 - [x] 添加 TIP 加载、激活、停用日志。
 - [ ] 通过真实注册路径验证 TSF manager 能创建 TIP 实例。
 
-当前 `DllRegisterServer` / `DllUnregisterServer` 只返回 `SELFREG_E_CLASS` 占位，真实 COM registry 和 language profile 注册属于 #4。#3 的代码骨架已完成，但 GitHub issue #3 不应关闭，直到 #4 提供注册路径并完成 TSF manager 创建实例验证。
+当前 `DllRegisterServer` / `DllUnregisterServer` 已由 #4 实现最小注册/卸载路径。#3 的代码骨架已完成，但 GitHub issue #3 不应关闭，直到在真实系统注册后确认 TSF manager 能创建实例并触发 activation。
 
 ### #4 注册 language profile 并显示在 Windows 输入法列表
 
-- [ ] 定义 CLSID、profile GUID、描述、图标和语言标识。
-- [ ] 使用 `ITfInputProcessorProfiles` 注册 profile。
-- [ ] 提供开发期注册/卸载脚本或工具。
+- [x] 定义 CLSID、profile GUID、描述和语言标识。
+- [x] 初始图标路径使用 TIP DLL 文件路径和 icon index `0`；后续发布前补正式资源。
+- [x] 写入 COM registry：`HKCR\CLSID\{TIP_CLSID}` 和 `InProcServer32`。
+- [x] 使用 `ITfInputProcessorProfiles::Register` 注册 text service。
+- [x] 使用 `AddLanguageProfile` / `EnableLanguageProfile` 注册并启用 zh-CN profile。
+- [x] 使用 `RemoveLanguageProfile` / `Unregister` 和 `RegDeleteTreeW` 清理 profile 与 COM registry。
+- [x] 提供开发期注册/卸载脚本和诊断工具。
 - [ ] 验证 Windows 设置和任务栏输入指示器可见。
 - [ ] 验证卸载后 profile 和 registry 清理干净。
+
+#### #4 分阶段验收
+
+| 阶段 | 状态 | 验收点 |
+|------|------|--------|
+| #4.1 标识和元数据 | Done | `TIP_CLSID`、`TIP_PROFILE_GUID`、`TIP_LANGID=0x0804` 集中定义 |
+| #4.2 COM 自注册 | Done | DLL 自注册写入 `InProcServer32` 和 `ThreadingModel=Apartment` |
+| #4.3 TSF profile 注册 | Done in code | 通过 `ITfInputProcessorProfiles` 注册、添加并启用 profile |
+| #4.4 卸载清理 | Done in code | 卸载时移除 profile、注销 text service、删除 CLSID key |
+| #4.5 诊断工具 | Done in code | `doubao-tip-tool status` 输出 registry、profile、DLL 路径和 HRESULT 诊断 |
+| #4.6 系统可见性验证 | Not started | Windows 设置/语言栏可见，切换后触发 activation 日志 |
+
+#### #4 开发期命令
+
+管理员 PowerShell 中执行：
+
+```powershell
+.\scripts\register-tip.ps1
+.\scripts\check-tip-registration.ps1
+.\scripts\unregister-tip.ps1
+```
+
+底层工具命令：
+
+```powershell
+cargo build -p doubao-tsf-tip
+.\target\debug\doubao-tip-tool.exe register --dll-path .\target\debug\doubao_tsf_tip.dll
+.\target\debug\doubao-tip-tool.exe status
+.\target\debug\doubao-tip-tool.exe unregister
+```
+
+真实验证必须记录：
+
+- 注册命令的 HRESULT / 工具输出。
+- Windows 设置和任务栏输入指示器是否出现 `Doubao Voice Input`。
+- 切换输入法时是否出现 `DllGetClassObject`、`CreateInstance`、`ActivateEx`、`Deactivate` 日志。
+- 卸载后 `doubao-tip-tool status` 和 Windows 输入法列表是否无残留。
 
 ## Phase 3: TSF 输入主路径
 

@@ -1,7 +1,7 @@
 # Doubao Voice Input - 项目结构
 
-**版本**: v3.0  
-**日期**: 2026-06-15  
+**版本**: v3.1
+**日期**: 2026-06-16
 **目标**: 支持当前辅助工具和后续系统级 TSF TIP 共存
 
 ## 1. 当前结构
@@ -31,7 +31,7 @@ crates/
         └── windows_tip.rs
 ```
 
-当前 `crates/tsf-tip` 能构建 `doubao_tsf_tip.dll`，包含 COM DLL 导出、class factory 和最小 `ITfTextInputProcessorEx` lifecycle。profile 注册工具和发布验证还未实现。
+当前 `crates/tsf-tip` 能构建 `doubao_tsf_tip.dll`，包含 COM DLL 导出、class factory、最小 `ITfTextInputProcessorEx` lifecycle 和开发期 `doubao-tip-tool`。工具已支持 register、unregister 和 status 诊断；真实 Windows 输入法列表可见性、TSF manager activation 和发布安装器仍待验证/实现。
 
 ## 2. 目标结构
 
@@ -87,6 +87,7 @@ doubao-ime-win/
 ├── scripts/
 │   ├── build-portable.ps1
 │   ├── register-tip.ps1
+│   ├── check-tip-registration.ps1
 │   └── unregister-tip.ps1
 │
 ├── PRD/
@@ -151,6 +152,7 @@ doubao-ime-win/
 ```text
 scripts/
 ├── register-tip.ps1       # 构建后注册 TIP DLL 和 language profile
+├── check-tip-registration.ps1 # 输出 COM registry 和 TSF profile 状态
 ├── unregister-tip.ps1     # 卸载 profile 和 COM registry
 └── build-portable.ps1     # 当前辅助工具便携构建
 ```
