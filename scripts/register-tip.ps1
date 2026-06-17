@@ -19,22 +19,35 @@ if (-not (Test-IsAdministrator)) {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$cargoArgs = @("build", "-p", "doubao-tsf-tip")
-if ($Profile -eq "release") {
-    $cargoArgs += "--release"
-}
 
 Push-Location $repoRoot
 try {
-    & cargo @cargoArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "cargo build failed with exit code $LASTEXITCODE"
-    }
-
     $targetDir = Join-Path $repoRoot "target\$Profile"
-    $toolPath = Join-Path $targetDir "doubao-tip-tool.exe"
     if ($DllPath -eq "") {
         $DllPath = Join-Path $targetDir "doubao_tsf_tip.dll"
+    }
+
+    if (Test-Path -LiteralPath $DllPath) {
+        $toolTargetDir = Join-Path $repoRoot "target\tip-tool-refresh"
+        $cargoArgs = @("build", "-p", "doubao-tsf-tip", "--bin", "doubao-tip-tool", "--target-dir", $toolTargetDir)
+        if ($Profile -eq "release") {
+            $cargoArgs += "--release"
+        }
+        & cargo @cargoArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "cargo build doubao-tip-tool failed with exit code $LASTEXITCODE"
+        }
+        $toolPath = Join-Path $toolTargetDir "$Profile\doubao-tip-tool.exe"
+    } else {
+        $cargoArgs = @("build", "-p", "doubao-tsf-tip")
+        if ($Profile -eq "release") {
+            $cargoArgs += "--release"
+        }
+        & cargo @cargoArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "cargo build failed with exit code $LASTEXITCODE"
+        }
+        $toolPath = Join-Path $targetDir "doubao-tip-tool.exe"
     }
 
     & $toolPath register --dll-path $DllPath

@@ -13,6 +13,7 @@
 | [core-shell-boundary.md](./core-shell-boundary.md) | #2 Rust core 与 TSF shell 的 API、事件、错误和线程边界 |
 | [task-list.md](./task-list.md) | 按 GitHub milestone issue 拆分的推进顺序和验收检查 |
 | [project-structure.md](./project-structure.md) | 当前目录与目标 workspace/TSF 模块结构 |
+| [tsf-tip-completion-plan.md](./tsf-tip-completion-plan.md) | TSF 注册、composition、UI service、IPC 和 QA 的完整完成计划 |
 
 ## 已合并的旧文档
 
@@ -41,6 +42,7 @@
 
 | 日期 | 版本 | 更新内容 |
 |------|------|----------|
+| 2026-06-17 | v3.3 | 补充 TSF TIP 完整完成计划，明确 keyboard category、UI service 和 IPC 路线 |
 | 2026-06-16 | v3.2 | 细化 Milestone 1 gate，补 #4 开发期注册/卸载/status 工具和脚本状态 |
 | 2026-06-15 | v3.1 | 细化 Milestone 1 / #4 language profile 注册目标，同步最小 COM/TSF 注册实现状态 |
 | 2026-06-15 | v3.0 | 合并旧 PRD，删除重复文档，切换到系统级 TSF TIP 路线 |

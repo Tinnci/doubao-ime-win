@@ -25,8 +25,9 @@ use windows::Win32::System::Registry::{
     REG_OPTION_NON_VOLATILE, REG_SZ, REG_VALUE_TYPE,
 };
 use windows::Win32::UI::TextServices::{
-    CLSID_TF_InputProcessorProfiles, ITfInputProcessorProfiles, ITfTextInputProcessor,
-    ITfTextInputProcessorEx, ITfTextInputProcessorEx_Vtbl, ITfTextInputProcessor_Vtbl,
+    CLSID_TF_CategoryMgr, CLSID_TF_InputProcessorProfiles, ITfCategoryMgr,
+    ITfInputProcessorProfiles, ITfTextInputProcessor, ITfTextInputProcessorEx,
+    ITfTextInputProcessorEx_Vtbl, ITfTextInputProcessor_Vtbl, GUID_TFCAT_TIP_KEYBOARD,
     TF_LANGUAGEPROFILE,
 };
 
@@ -53,6 +54,7 @@ pub struct TipRegistrationStatus {
     pub tsf_profile_key_present: bool,
     pub tsf_profile_registered: bool,
     pub tsf_profile_enabled: Option<bool>,
+    pub keyboard_category_registered: bool,
     pub tsf_profile_error: Option<String>,
 }
 
@@ -135,15 +137,18 @@ fn register_server() -> windows::core::Result<()> {
 pub fn register_server_with_path(dll_path: &str) -> windows::core::Result<()> {
     register_com_server(dll_path)?;
     register_tsf_profile(dll_path)?;
+    register_tsf_categories()?;
     tracing::info!(dll_path, "Doubao TSF TIP registered");
     diagnostic_log(format!("Doubao TSF TIP registered: {dll_path}"));
     Ok(())
 }
 
 pub fn unregister_server() -> windows::core::Result<()> {
+    let category_result = unregister_tsf_categories();
     let profile_result = unregister_tsf_profile();
     let registry_result = unregister_com_server();
 
+    category_result?;
     profile_result?;
     registry_result?;
 
@@ -182,6 +187,7 @@ pub fn query_registration_status() -> TipRegistrationStatus {
             Ok((registered, enabled)) => (registered, enabled, None),
             Err(error) => (false, None, Some(format!("{error:?}"))),
         };
+    let keyboard_category_registered = query_keyboard_category_registered().unwrap_or(false);
 
     TipRegistrationStatus {
         clsid,
@@ -194,6 +200,7 @@ pub fn query_registration_status() -> TipRegistrationStatus {
         tsf_profile_key_present,
         tsf_profile_registered,
         tsf_profile_enabled,
+        keyboard_category_registered,
         tsf_profile_error,
     }
 }
@@ -222,8 +229,8 @@ fn unregister_com_server() -> windows::core::Result<()> {
 fn register_tsf_profile(dll_path: &str) -> windows::core::Result<()> {
     let _com = ComInitGuard::initialize()?;
     let profiles = input_processor_profiles()?;
-    let description = wide(TIP_DESCRIPTION);
-    let icon_file = wide(dll_path);
+    let description = wide_z(TIP_DESCRIPTION);
+    let icon_file = wide_z(dll_path);
 
     unsafe {
         profiles.Register(&TIP_CLSID)?;
@@ -272,6 +279,28 @@ fn unregister_tsf_profile() -> windows::core::Result<()> {
     Ok(())
 }
 
+fn register_tsf_categories() -> windows::core::Result<()> {
+    let _com = ComInitGuard::initialize()?;
+    let category_mgr = category_mgr()?;
+    unsafe {
+        category_mgr.RegisterCategory(&TIP_CLSID, &GUID_TFCAT_TIP_KEYBOARD, &TIP_CLSID)?;
+    }
+    Ok(())
+}
+
+fn unregister_tsf_categories() -> windows::core::Result<()> {
+    let _com = ComInitGuard::initialize()?;
+    let category_mgr = category_mgr()?;
+    unsafe {
+        if let Err(error) =
+            category_mgr.UnregisterCategory(&TIP_CLSID, &GUID_TFCAT_TIP_KEYBOARD, &TIP_CLSID)
+        {
+            tracing::warn!(?error, "UnregisterCategory(GUID_TFCAT_TIP_KEYBOARD) failed");
+        }
+    }
+    Ok(())
+}
+
 fn query_tsf_profile_state() -> windows::core::Result<(bool, Option<bool>)> {
     let _com = ComInitGuard::initialize()?;
     let profiles = input_processor_profiles()?;
@@ -298,10 +327,38 @@ fn query_tsf_profile_state() -> windows::core::Result<(bool, Option<bool>)> {
     }
 }
 
+fn query_keyboard_category_registered() -> windows::core::Result<bool> {
+    let _com = ComInitGuard::initialize()?;
+    let category_mgr = category_mgr()?;
+    let items = unsafe { category_mgr.EnumItemsInCategory(&GUID_TFCAT_TIP_KEYBOARD)? };
+
+    loop {
+        let mut item = [GUID::zeroed()];
+        let mut fetched = 0u32;
+        let hr = unsafe { items.Next(&mut item, Some(&mut fetched)) };
+        if hr.is_err() || fetched == 0 {
+            return Ok(false);
+        }
+        if item[0] == TIP_CLSID {
+            return Ok(true);
+        }
+    }
+}
+
 fn input_processor_profiles() -> windows::core::Result<ITfInputProcessorProfiles> {
     unsafe {
         CoCreateInstance(
             &CLSID_TF_InputProcessorProfiles,
+            None::<&IUnknown>,
+            CLSCTX_INPROC_SERVER,
+        )
+    }
+}
+
+fn category_mgr() -> windows::core::Result<ITfCategoryMgr> {
+    unsafe {
+        CoCreateInstance(
+            &CLSID_TF_CategoryMgr,
             None::<&IUnknown>,
             CLSCTX_INPROC_SERVER,
         )
@@ -329,10 +386,6 @@ fn current_dll_path() -> windows::core::Result<String> {
         }
         buffer.resize(buffer.len() * 2, 0);
     }
-}
-
-fn wide(value: &str) -> Vec<u16> {
-    value.encode_utf16().collect()
 }
 
 fn wide_z(value: &str) -> Vec<u16> {

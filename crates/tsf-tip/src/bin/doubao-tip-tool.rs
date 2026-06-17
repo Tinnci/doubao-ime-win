@@ -128,6 +128,10 @@ fn print_status() {
                 .unwrap_or("no diagnostic error")
         ),
     }
+    println!(
+        "  keyboard category registered: {}",
+        yes_no(status.keyboard_category_registered)
+    );
 }
 
 #[cfg(windows)]

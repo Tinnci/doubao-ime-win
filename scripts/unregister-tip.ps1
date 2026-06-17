@@ -17,19 +17,21 @@ if (-not (Test-IsAdministrator)) {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$cargoArgs = @("build", "-p", "doubao-tsf-tip", "--bin", "doubao-tip-tool")
-if ($Profile -eq "release") {
-    $cargoArgs += "--release"
-}
 
 Push-Location $repoRoot
 try {
+    $toolTargetDir = Join-Path $repoRoot "target\tip-tool-refresh"
+    $cargoArgs = @("build", "-p", "doubao-tsf-tip", "--bin", "doubao-tip-tool", "--target-dir", $toolTargetDir)
+    if ($Profile -eq "release") {
+        $cargoArgs += "--release"
+    }
+
     & cargo @cargoArgs
     if ($LASTEXITCODE -ne 0) {
         throw "cargo build failed with exit code $LASTEXITCODE"
     }
 
-    $toolPath = Join-Path $repoRoot "target\$Profile\doubao-tip-tool.exe"
+    $toolPath = Join-Path $toolTargetDir "$Profile\doubao-tip-tool.exe"
     & $toolPath unregister
     if ($LASTEXITCODE -ne 0) {
         throw "doubao-tip-tool unregister failed with exit code $LASTEXITCODE"

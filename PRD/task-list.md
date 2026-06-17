@@ -71,6 +71,7 @@
 - [x] 写入 COM registry：`HKCR\CLSID\{TIP_CLSID}` 和 `InProcServer32`。
 - [x] 使用 `ITfInputProcessorProfiles::Register` 注册 text service。
 - [x] 使用 `AddLanguageProfile` / `EnableLanguageProfile` 注册并启用 zh-CN profile。
+- [x] 使用 `ITfCategoryMgr::RegisterCategory` 注册 `GUID_TFCAT_TIP_KEYBOARD`，让 Windows 将该 TIP 归类为 keyboard text service。
 - [x] 使用 `RemoveLanguageProfile` / `Unregister` 和 `RegDeleteTreeW` 清理 profile 与 COM registry。
 - [x] 提供开发期注册/卸载脚本和诊断工具。
 - [ ] 验证 Windows 设置和任务栏输入指示器可见。
@@ -83,9 +84,10 @@
 | #4.1 标识和元数据 | Done | `TIP_CLSID`、`TIP_PROFILE_GUID`、`TIP_LANGID=0x0804` 集中定义 |
 | #4.2 COM 自注册 | Done | DLL 自注册写入 `InProcServer32` 和 `ThreadingModel=Apartment` |
 | #4.3 TSF profile 注册 | Done in code | 通过 `ITfInputProcessorProfiles` 注册、添加并启用 profile |
-| #4.4 卸载清理 | Done in code | 卸载时移除 profile、注销 text service、删除 CLSID key |
-| #4.5 诊断工具 | Done in code | `doubao-tip-tool status` 输出 registry、profile、DLL 路径和 HRESULT 诊断 |
-| #4.6 系统可见性验证 | Not started | Windows 设置/语言栏可见，切换后触发 activation 诊断 |
+| #4.4 Keyboard category | Done in code | 通过 `ITfCategoryMgr` 注册 `GUID_TFCAT_TIP_KEYBOARD` |
+| #4.5 卸载清理 | Done in code | 卸载时移除 category、profile、注销 text service、删除 CLSID key |
+| #4.6 诊断工具 | Done in code | `doubao-tip-tool status` 输出 registry、profile、keyboard category、DLL 路径和 HRESULT 诊断 |
+| #4.7 系统可见性验证 | Not started | Windows 设置/语言栏可见，切换后触发 activation 诊断 |
 
 #### #4 开发期命令
 
