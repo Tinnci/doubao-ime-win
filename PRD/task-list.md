@@ -59,7 +59,7 @@
 - [x] 实现 COM class factory。
 - [x] 导出 `DllGetClassObject`、`DllCanUnloadNow`、`DllRegisterServer`、`DllUnregisterServer`。
 - [x] 实现最小 `ITfTextInputProcessorEx` activation/deactivation。
-- [x] 添加 TIP 加载、激活、停用日志。
+- [x] 添加 TIP 加载、激活、停用诊断输出。
 - [ ] 通过真实注册路径验证 TSF manager 能创建 TIP 实例。
 
 当前 `DllRegisterServer` / `DllUnregisterServer` 已由 #4 实现最小注册/卸载路径。#3 的代码骨架已完成，但 GitHub issue #3 不应关闭，直到在真实系统注册后确认 TSF manager 能创建实例并触发 activation。
@@ -85,7 +85,7 @@
 | #4.3 TSF profile 注册 | Done in code | 通过 `ITfInputProcessorProfiles` 注册、添加并启用 profile |
 | #4.4 卸载清理 | Done in code | 卸载时移除 profile、注销 text service、删除 CLSID key |
 | #4.5 诊断工具 | Done in code | `doubao-tip-tool status` 输出 registry、profile、DLL 路径和 HRESULT 诊断 |
-| #4.6 系统可见性验证 | Not started | Windows 设置/语言栏可见，切换后触发 activation 日志 |
+| #4.6 系统可见性验证 | Not started | Windows 设置/语言栏可见，切换后触发 activation 诊断 |
 
 #### #4 开发期命令
 
@@ -110,7 +110,7 @@ cargo build -p doubao-tsf-tip
 
 - 注册命令的 HRESULT / 工具输出。
 - Windows 设置和任务栏输入指示器是否出现 `Doubao Voice Input`。
-- 切换输入法时是否出现 `DllGetClassObject`、`CreateInstance`、`ActivateEx`、`Deactivate` 日志。
+- 切换输入法时是否在 DebugView/WinDbg 或 `%LOCALAPPDATA%\DoubaoVoiceInput\tsf-tip.log` 出现 `DllGetClassObject`、`CreateInstance`、`ActivateEx`、`Deactivate`。
 - 卸载后 `doubao-tip-tool status` 和 Windows 输入法列表是否无残留。
 
 ## Phase 3: TSF 输入主路径

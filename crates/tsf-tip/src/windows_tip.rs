@@ -1,7 +1,9 @@
 use std::ffi::c_void;
+use std::io::Write;
 use std::ptr::null_mut;
 use std::slice;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use windows::core::{ComInterface, Error, IUnknown, IUnknown_Vtbl, GUID, HRESULT, PCWSTR};
 use windows::Win32::Foundation::{
@@ -12,6 +14,7 @@ use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoUninitialize, IClassFactory, IClassFactory_Vtbl,
     CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED,
 };
+use windows::Win32::System::Diagnostics::Debug::OutputDebugStringW;
 use windows::Win32::System::LibraryLoader::{
     GetModuleFileNameW, GetModuleHandleExW, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
     GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -74,6 +77,7 @@ pub unsafe extern "system" fn DllGetClassObject(
     ppv: *mut *mut c_void,
 ) -> HRESULT {
     tracing::info!("DllGetClassObject called");
+    diagnostic_log("DllGetClassObject called");
 
     if ppv.is_null() {
         return E_POINTER;
@@ -108,6 +112,7 @@ pub extern "system" fn DllRegisterServer() -> HRESULT {
     let result = register_server();
     if let Err(error) = &result {
         tracing::error!(?error, "DllRegisterServer failed");
+        diagnostic_log(format!("DllRegisterServer failed: {error:?}"));
     }
     result.into()
 }
@@ -117,6 +122,7 @@ pub extern "system" fn DllUnregisterServer() -> HRESULT {
     let result = unregister_server();
     if let Err(error) = &result {
         tracing::error!(?error, "DllUnregisterServer failed");
+        diagnostic_log(format!("DllUnregisterServer failed: {error:?}"));
     }
     result.into()
 }
@@ -130,6 +136,7 @@ pub fn register_server_with_path(dll_path: &str) -> windows::core::Result<()> {
     register_com_server(dll_path)?;
     register_tsf_profile(dll_path)?;
     tracing::info!(dll_path, "Doubao TSF TIP registered");
+    diagnostic_log(format!("Doubao TSF TIP registered: {dll_path}"));
     Ok(())
 }
 
@@ -141,6 +148,7 @@ pub fn unregister_server() -> windows::core::Result<()> {
     registry_result?;
 
     tracing::info!("Doubao TSF TIP unregistered");
+    diagnostic_log("Doubao TSF TIP unregistered");
     Ok(())
 }
 
@@ -353,6 +361,39 @@ fn tsf_profile_key_path() -> String {
 
 fn is_file_not_found(error: &Error) -> bool {
     error.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND.0)
+}
+
+fn diagnostic_log(message: impl AsRef<str>) {
+    let message = message.as_ref();
+    let line = format!("[doubao-tsf-tip] {message}");
+    let debug_line = wide_z(&line);
+    unsafe {
+        OutputDebugStringW(PCWSTR::from_raw(debug_line.as_ptr()));
+    }
+
+    let Some(mut log_path) = std::env::var_os("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .or_else(|| Some(std::env::temp_dir()))
+    else {
+        return;
+    };
+    log_path.push("DoubaoVoiceInput");
+    if std::fs::create_dir_all(&log_path).is_err() {
+        return;
+    }
+    log_path.push("tsf-tip.log");
+
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    {
+        let timestamp_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_millis())
+            .unwrap_or_default();
+        let _ = writeln!(file, "{timestamp_ms} pid={} {message}", std::process::id());
+    }
 }
 
 struct ComInitGuard {
@@ -579,6 +620,7 @@ unsafe extern "system" fn class_factory_create_instance(
     object: *mut *mut c_void,
 ) -> HRESULT {
     tracing::info!("IClassFactory::CreateInstance called");
+    diagnostic_log("IClassFactory::CreateInstance called");
 
     if object.is_null() {
         return E_POINTER;
@@ -655,6 +697,9 @@ unsafe extern "system" fn text_service_activate(
     client_id: u32,
 ) -> HRESULT {
     tracing::info!("ITfTextInputProcessor::Activate called (client_id={client_id})");
+    diagnostic_log(format!(
+        "ITfTextInputProcessor::Activate called (client_id={client_id})"
+    ));
     let service = this.cast::<TextServiceObject>();
     (*service).client_id.store(client_id, Ordering::SeqCst);
     (*service).activate_flags.store(0, Ordering::SeqCst);
@@ -663,6 +708,7 @@ unsafe extern "system" fn text_service_activate(
 
 unsafe extern "system" fn text_service_deactivate(this: *mut c_void) -> HRESULT {
     tracing::info!("ITfTextInputProcessor::Deactivate called");
+    diagnostic_log("ITfTextInputProcessor::Deactivate called");
     let service = this.cast::<TextServiceObject>();
     (*service).client_id.store(0, Ordering::SeqCst);
     (*service).activate_flags.store(0, Ordering::SeqCst);
@@ -678,6 +724,9 @@ unsafe extern "system" fn text_service_activate_ex(
     tracing::info!(
         "ITfTextInputProcessorEx::ActivateEx called (client_id={client_id}, flags={flags:#x})"
     );
+    diagnostic_log(format!(
+        "ITfTextInputProcessorEx::ActivateEx called (client_id={client_id}, flags={flags:#x})"
+    ));
     let service = this.cast::<TextServiceObject>();
     (*service).client_id.store(client_id, Ordering::SeqCst);
     (*service).activate_flags.store(flags, Ordering::SeqCst);

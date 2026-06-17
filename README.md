@@ -84,6 +84,8 @@ cargo build -p doubao-tsf-tip
 .\target\debug\doubao-tip-tool.exe status
 ```
 
+TIP DLL 被 TSF host 加载后，activation 诊断会同时写入 `OutputDebugStringW` 和 `%LOCALAPPDATA%\DoubaoVoiceInput\tsf-tip.log`。
+
 ## 文档
 
 - [产品需求](PRD/windows-ime-requirements.md)
