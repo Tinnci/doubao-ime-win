@@ -392,7 +392,8 @@ fn diagnostic_log(message: impl AsRef<str>) {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_millis())
             .unwrap_or_default();
-        let _ = writeln!(file, "{timestamp_ms} pid={} {message}", std::process::id());
+        let line = format!("{timestamp_ms} pid={} {message}\r\n", std::process::id());
+        let _ = file.write_all(line.as_bytes());
     }
 }
 

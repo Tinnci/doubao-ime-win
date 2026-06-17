@@ -42,6 +42,8 @@ try {
         throw "doubao-tip-tool register failed with exit code $LASTEXITCODE"
     }
 
+    Start-Sleep -Milliseconds 1000
+
     & $toolPath status
     if ($LASTEXITCODE -ne 0) {
         throw "doubao-tip-tool status failed with exit code $LASTEXITCODE"
