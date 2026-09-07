@@ -1,7 +1,7 @@
 # Doubao Voice Input - TSF TIP 任务清单
 
-**版本**: v3.2
-**日期**: 2026-06-16
+**版本**: v3.3
+**日期**: 2026-06-17
 **来源**: [GitHub milestone #1 系统级输入法 / TSF TIP](https://github.com/Tinnci/doubao-ime-win/milestone/1)
 
 ## 当前原则
@@ -60,9 +60,10 @@
 - [x] 导出 `DllGetClassObject`、`DllCanUnloadNow`、`DllRegisterServer`、`DllUnregisterServer`。
 - [x] 实现最小 `ITfTextInputProcessorEx` activation/deactivation。
 - [x] 添加 TIP 加载、激活、停用诊断输出。
-- [ ] 通过真实注册路径验证 TSF manager 能创建 TIP 实例。
+- [x] 通过真实注册路径验证 TSF manager 能创建 TIP 实例并触发 `ActivateEx`。
+- [x] 通过 `doubao-tip-tool switch-test` 验证切出输入法触发 `Deactivate`。
 
-当前 `DllRegisterServer` / `DllUnregisterServer` 已由 #4 实现最小注册/卸载路径。#3 的代码骨架已完成，但 GitHub issue #3 不应关闭，直到在真实系统注册后确认 TSF manager 能创建实例并触发 activation。
+当前 `DllRegisterServer` / `DllUnregisterServer` 已由 #4 实现最小注册/卸载路径。#3 的代码骨架已完成，TSF host 已能创建实例，并已验证 `ActivateEx` / `Deactivate`。
 
 ### #4 注册 language profile 并显示在 Windows 输入法列表
 
@@ -74,7 +75,7 @@
 - [x] 使用 `ITfCategoryMgr::RegisterCategory` 注册 `GUID_TFCAT_TIP_KEYBOARD`，让 Windows 将该 TIP 归类为 keyboard text service。
 - [x] 使用 `RemoveLanguageProfile` / `Unregister` 和 `RegDeleteTreeW` 清理 profile 与 COM registry。
 - [x] 提供开发期注册/卸载脚本和诊断工具。
-- [ ] 验证 Windows 设置和任务栏输入指示器可见。
+- [x] 验证 Windows 设置和任务栏输入指示器可见。
 - [ ] 验证卸载后 profile 和 registry 清理干净。
 
 #### #4 分阶段验收
@@ -87,7 +88,7 @@
 | #4.4 Keyboard category | Done in code | 通过 `ITfCategoryMgr` 注册 `GUID_TFCAT_TIP_KEYBOARD` |
 | #4.5 卸载清理 | Done in code | 卸载时移除 category、profile、注销 text service、删除 CLSID key |
 | #4.6 诊断工具 | Done in code | `doubao-tip-tool status` 输出 registry、profile、keyboard category、DLL 路径和 HRESULT 诊断 |
-| #4.7 系统可见性验证 | Not started | Windows 设置/语言栏可见，切换后触发 activation 诊断 |
+| #4.7 系统可见性验证 | In progress | Windows 设置/语言栏可见已确认；`ActivateEx` / `Deactivate` 已观察，卸载无残留待验证 |
 
 #### #4 开发期命令
 
@@ -122,6 +123,7 @@ cargo build -p doubao-tsf-tip
 - [ ] 管理 document manager、context 和 edit session。
 - [ ] 建立 composition 生命周期状态机。
 - [ ] 支持固定文本的 composition update 和 final commit。
+- [x] 实现 F6 fixed-text TSF edit session / composition commit 代码路径，已编译，待注册新 DLL 后真机输入框验证。
 - [ ] 支持 cancel 和错误清理。
 - [ ] 在 Notepad、Edge/Chrome、WinUI/WPF 文本框中验证。
 

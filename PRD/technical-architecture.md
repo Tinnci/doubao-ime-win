@@ -226,4 +226,4 @@ sequenceDiagram
 5. 接入 ASR event bridge，把 interim/final 映射到 composition/commit。
 6. 增加状态 UI、候选窗定位和 QA 矩阵。
 
-当前进度：第 1 步已完成；第 2 步已完成 DLL crate、COM 导出、class factory 和最小 activation/deactivation skeleton。第 3 步 / #4 已完成最小代码实现，包括 COM registry 写入/清理和 `ITfInputProcessorProfiles` language profile 注册/卸载；仍需在真实 Windows 输入法列表和 TSF manager activation 路径上验证。
+当前进度：第 1 步已完成；第 2 步已完成 DLL crate、COM 导出、class factory 和最小 activation/deactivation skeleton，并已验证 `ActivateEx` / `Deactivate`。第 3 步 / #4 已完成 COM registry 写入/清理、`ITfInputProcessorProfiles` language profile 注册/卸载和 `GUID_TFCAT_TIP_KEYBOARD` category 注册；本机已确认 Windows 输入法列表可见，仍需验证卸载无残留。第 4 步 / #5 已开始：F6 fixed-text TSF edit session / composition commit 代码路径已实现并编译，待 elevated 注册新 DLL 后验证 Notepad/浏览器输入行为。

@@ -40,6 +40,12 @@ fn run() -> Result<(), String> {
         "status" => {
             print_status();
         }
+        "active-profile" => {
+            print_active_profile()?;
+        }
+        "switch-test" => {
+            run_switch_test()?;
+        }
         "help" | "--help" | "-h" => {
             print_help();
         }
@@ -135,6 +141,55 @@ fn print_status() {
 }
 
 #[cfg(windows)]
+fn print_active_profile() -> Result<(), String> {
+    let profile =
+        doubao_tsf_tip::query_active_keyboard_profile().map_err(|error| format!("{error:?}"))?;
+    println!("Active keyboard profile");
+    print_profile("  active", &profile);
+    Ok(())
+}
+
+#[cfg(windows)]
+fn run_switch_test() -> Result<(), String> {
+    let result =
+        doubao_tsf_tip::switch_profile_smoke_test().map_err(|error| format!("{error:?}"))?;
+
+    println!("Doubao TSF TIP profile switch smoke test");
+    print_profile("  before", &result.before);
+    print_profile("  restore target", &result.restore_target);
+    print_profile("  after Doubao activation", &result.after_doubao);
+    print_profile("  after restore", &result.after_restore);
+
+    let doubao_active = result.after_doubao.clsid
+        == doubao_tsf_tip::guid_string_with_braces(&doubao_tsf_tip::TIP_CLSID)
+        && result.after_doubao.profile_guid
+            == doubao_tsf_tip::guid_string_with_braces(&doubao_tsf_tip::TIP_PROFILE_GUID);
+
+    if !doubao_active {
+        return Err("Doubao profile did not become the active keyboard profile".to_string());
+    }
+
+    println!("  result: profile activated and restored");
+    println!(
+        "  check log: %LOCALAPPDATA%\\DoubaoVoiceInput\\tsf-tip.log should include ActivateEx and Deactivate"
+    );
+    Ok(())
+}
+
+#[cfg(windows)]
+fn print_profile(label: &str, profile: &doubao_tsf_tip::ActiveProfileSummary) {
+    println!("{label}:");
+    println!("    type: {}", profile.profile_type);
+    println!("    langid: 0x{:04x}", profile.langid);
+    println!("    clsid: {}", profile.clsid);
+    println!("    profile: {}", profile.profile_guid);
+    println!("    category: {}", profile.category);
+    println!("    hkl: 0x{:x}", profile.hkl);
+    println!("    enabled: {}", yes_no(profile.enabled));
+    println!("    active: {}", yes_no(profile.active));
+}
+
+#[cfg(windows)]
 fn yes_no(value: bool) -> &'static str {
     if value {
         "yes"
@@ -147,6 +202,8 @@ fn yes_no(value: bool) -> &'static str {
 fn print_help() {
     println!("Usage:");
     println!("  doubao-tip-tool status");
+    println!("  doubao-tip-tool active-profile");
+    println!("  doubao-tip-tool switch-test");
     println!("  doubao-tip-tool register [--dll-path <path-to-doubao_tsf_tip.dll>]");
     println!("  doubao-tip-tool unregister");
 }

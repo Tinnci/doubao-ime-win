@@ -5,11 +5,12 @@
 
 ## 当前结论
 
-`Doubao Voice Input` 出现在 Windows 键盘布局/输入法列表属于 Milestone 1 的 #4。当前 profile 已能注册并触发 TSF host `ActivateEx`，但还缺 keyboard TIP category：
+`Doubao Voice Input` 出现在 Windows 键盘布局/输入法列表属于 Milestone 1 的 #4。当前 #4 的关键代码路径已完成，并且本机已确认 Windows 输入法/键盘布局列表能看到该输入法：
 
-- 必须注册 `GUID_TFCAT_TIP_KEYBOARD`，否则 Windows 可能不会把该 text service 归类到键盘/输入法布局列表。
-- profile 描述和 icon path 必须用 NUL 结尾的 UTF-16 字符串传给 TSF 注册 API，否则 registry 中 `Description` 可能出现脏数据。
-- 已注册 DLL 被 TSF host 加载后会锁住 `doubao_tsf_tip.dll`，开发脚本需要能只刷新注册工具和 TSF 元数据，而不是每次都重写 DLL。
+- `GUID_TFCAT_TIP_KEYBOARD` 已注册，Windows 能把该 text service 归类为 keyboard TIP。
+- profile 描述和 icon path 已改为 NUL 结尾的 UTF-16 字符串，避免 registry 中 `Description` 出现脏数据。
+- 开发脚本已能在 DLL 被 TSF host 锁定时刷新注册工具和 TSF 元数据。
+- 当前剩余 gate 是卸载后确认 category/profile/COM registry 和 Windows 输入法列表无残留。
 
 相关代码：
 
@@ -142,19 +143,21 @@ UiClosed {}
 
 ## 完成计划
 
-### Gate A: #4 键盘布局可见
+### Gate A: #4 键盘布局可见和卸载清理
 
-1. 注册 `GUID_TFCAT_TIP_KEYBOARD`。
-2. 修复 `AddLanguageProfile` 字符串 NUL 结尾。
-3. elevated 运行 `scripts/register-tip.ps1` 刷新注册。
+1. 注册 `GUID_TFCAT_TIP_KEYBOARD`。已完成。
+2. 修复 `AddLanguageProfile` 字符串 NUL 结尾。已完成。
+3. elevated 运行 `scripts/register-tip.ps1` 刷新注册。已完成。
 4. `doubao-tip-tool status` 必须显示：
    - `COM key present: yes`
    - `TSF profile registered: yes`
    - `TSF profile enabled: yes`
    - `keyboard category registered: yes`
-5. Windows 设置/任务栏输入法列表能看到 `Doubao Voice Input`。
-6. 切换进出能看到 `ActivateEx` / `Deactivate`。
-7. `scripts/unregister-tip.ps1` 后无残留。
+   当前已完成。
+5. Windows 设置/任务栏输入法列表能看到 `Doubao Voice Input`。已完成。
+6. 切换进入输入法能看到 `ActivateEx`。已完成。
+7. 切换离开输入法能看到 `Deactivate`。已通过 `doubao-tip-tool switch-test` 验证。
+8. `scripts/unregister-tip.ps1` 后无残留。待验证。
 
 ### Gate B: #5 固定文本 composition
 
@@ -163,6 +166,14 @@ UiClosed {}
 3. 用固定文本开始 composition、更新 composition、commit final。
 4. Notepad 和浏览器输入框验证。
 5. deactivate/cancel/context lost 必须结束 composition。
+
+当前状态：
+
+- 已保存 `ITfThreadMgr` 和 client id。
+- 已实现 `ITfKeyEventSink`，开发期用 `F6` 触发 fixed-text smoke test。
+- 已实现 `ITfEditSession` 和 `ITfCompositionSink` COM object。
+- edit session 中已调用 `StartComposition`、`ITfRange::SetText` 和 `EndComposition`。
+- 代码已编译，仍需 elevated 注册新 DLL 后在 Notepad/浏览器验证实际输入行为。
 
 ### Gate C: #7 ASR event bridge
 

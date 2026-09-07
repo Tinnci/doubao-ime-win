@@ -20,9 +20,9 @@
 |------|------|------|
 | #1 架构决策 | Done | 已产出 ADR，明确 Rust core + TSF shell 路线和 C++ fallback |
 | #2 Core/Shell 边界 | Done | 已抽出 `src/voice_core`，fallback adapter 订阅 core events |
-| #3 TIP DLL 骨架 | In progress | 已新增 `crates/tsf-tip`，可构建 DLL，已导出 COM 入口；注册代码和 activation 诊断已落地，TSF manager 加载验证仍未完成 |
-| #4 Language profile 注册 | In progress | 已实现 COM registry、keyboard category 和 `ITfInputProcessorProfiles` 注册/卸载；系统可见性、切换和清理验证待执行 |
-| #5 Composition | Not started | 先用固定文本验证 TSF composition，再接 ASR |
+| #3 TIP DLL 骨架 | Done | 已新增 `crates/tsf-tip`，可构建 DLL，已导出 COM 入口；TSF host 已能调用 `DllGetClassObject`、`CreateInstance`、`ActivateEx` 和 `Deactivate` |
+| #4 Language profile 注册 | In progress | 已实现 COM registry、keyboard category 和 `ITfInputProcessorProfiles` 注册/卸载；Windows 输入法列表可见、切换激活和切出停用已确认，仍需卸载无残留验证 |
+| #5 Composition | In progress | 已实现 F6 fixed-text edit session / composition commit 代码路径并通过编译；待注册新 DLL 后在 Notepad/浏览器输入框验证 |
 | #6 候选/状态 UI | Not started | 依赖 #5 的上下文和 caret rectangle |
 | #7 ASR 接入 TSF | Not started | 依赖 #5 的 event bridge 和 composition 生命周期 |
 | #8 QA 矩阵 | Not started | 可先建 checklist，完整验证依赖 #4-#7 |
@@ -34,18 +34,18 @@ Milestone 1 按可验证 gate 推进，每个阶段只关闭会解锁下一阶�
 | 阶段 | 主 issue | 阶段目标 | 完成 gate | 当前状态 |
 |------|----------|----------|-----------|----------|
 | Phase 1 Foundation | #1, #2 | 锁定 TSF TIP 路线，隔离 Rust core 与 TSF shell | workspace 可构建，core event 模型不依赖 TSF/COM/UI | Done |
-| Phase 2 TIP Loadability | #3 | 构建可注册、可由 COM 创建的 TIP DLL | COM 注册成功，TSF manager 能创建实例并触发 activation 日志 | In progress |
+| Phase 2 TIP Loadability | #3 | 构建可注册、可由 COM 创建的 TIP DLL | COM 注册成功，TSF manager 能创建实例并触发 activation/deactivation 日志 | Done |
 | Phase 3 Language Profile | #4 | 注册、启用、诊断和卸载 zh-CN language profile | Windows 输入法列表可见，重复注册幂等，卸载无 profile/registry 残留 | In progress |
-| Phase 4 Composition MVP | #5 | 不依赖 `SendInput`，用固定文本验证 TSF composition/update/commit | Notepad 和现代浏览器可更新 composition 并提交 final 文本 | Not started |
+| Phase 4 Composition MVP | #5 | 不依赖 `SendInput`，用固定文本验证 TSF composition/update/commit | Notepad 和现代浏览器可更新 composition 并提交 final 文本 | In progress |
 | Phase 5 ASR Event Bridge | #7 | 将 core interim/final/error 映射到 TSF edit session | 语音 interim 更新 composition，final commit，错误路径清理干净 | Not started |
 | Phase 6 Candidate/Status UI | #6 | 实现录音/识别/错误状态和 caret 跟随 UI | DPI、多显示器、焦点切换下 UI 不残留、不遮挡输入 | Not started |
 | Phase 7 QA/Release Readiness | #8 | 建立安装、升级、卸载、兼容性和 release blocker 验证 | Windows 10/11 QA checklist 有结果，blocker 关闭或有降级说明 | Not started |
 
 ### 近期推进顺序
 
-1. 关闭 #4 的真实系统验证：管理员注册、输入法列表可见、切换触发 activation、卸载清理。
-2. 用 #4 的注册脚本复测 #3：确认 TSF manager 能创建 TIP 实例。
-3. 进入 #5：先做固定文本 composition，不接 ASR、不做完整 UI。
+1. 关闭 #4 的剩余真实系统验证：卸载后 profile/category/COM registry 和输入法列表无残留。
+2. 进入 #5：先做固定文本 composition，不接 ASR、不做完整 UI。
+3. #5 稳定后再进入 #7：把 ASR interim/final/error 接入 TSF edit session。
 
 ## Phase 1: Foundation
 
@@ -82,11 +82,11 @@ Milestone 1 按可验证 gate 推进，每个阶段只关闭会解锁下一阶�
 - `DllGetClassObject` / `CreateInstance` / `Activate` / `ActivateEx` / `Deactivate` 有诊断输出。
 - 诊断同时写入 `OutputDebugStringW` 和 `%LOCALAPPDATA%\DoubaoVoiceInput\tsf-tip.log`，避免 TSF host 没有 tracing subscriber 时不可观测。
 
-### 剩余
+### 已完成
 
-- 需要在开发机上执行真实注册/卸载路径。
-- 需要验证 TSF manager 能创建 TIP 实例并触发 activation。
-- 需要用现有诊断输出定位 registry/profile 残留和加载失败原因。
+- 已在开发机上执行真实注册路径。
+- 已验证 TSF manager 能创建 TIP 实例并触发 `ActivateEx`。
+- 已通过 `doubao-tip-tool switch-test` 验证切出输入法时 TSF manager 触发 `Deactivate`。
 
 ### Phase 2 退出标准
 
@@ -108,7 +108,7 @@ Milestone 1 按可验证 gate 推进，每个阶段只关闭会解锁下一阶�
 - [x] 通过 `ITfCategoryMgr::RegisterCategory` 注册 `GUID_TFCAT_TIP_KEYBOARD`。
 - [x] 通过 `RemoveLanguageProfile` / `Unregister` 和 registry 删除实现卸载清理。
 - [x] 提供开发期命令和脚本，封装管理员权限下的注册、卸载和状态检查。
-- [ ] 输入法出现在 Windows 设置和任务栏输入列表。
+- [x] 输入法出现在 Windows 设置和任务栏输入列表。
 - [ ] 卸载后 profile、registry 和文件清理干净。
 
 ### #4 细化目标
@@ -121,7 +121,7 @@ Milestone 1 按可验证 gate 推进，每个阶段只关闭会解锁下一阶�
 | #4.4 Keyboard category | `RegisterCategory(TIP_CLSID, GUID_TFCAT_TIP_KEYBOARD, TIP_CLSID)` | `doubao-tip-tool status` 显示 `keyboard category registered: yes` |
 | #4.5 卸载清理 | `UnregisterCategory`、`RemoveLanguageProfile`、`Unregister`、`RegDeleteTreeW` | 重复卸载不失败，category、profile 和 CLSID key 无残留 |
 | #4.6 诊断路径 | `doubao-tip-tool status` 与 `scripts/check-tip-registration.ps1` | 输出 DLL 路径、CLSID key、profile registry key、keyboard category、枚举注册状态、启用状态和错误码 |
-| #4.7 系统加载验证 | TSF manager 创建 TIP 实例 | 切换输入法时在 DebugView/WinDbg 或 `%LOCALAPPDATA%\DoubaoVoiceInput\tsf-tip.log` 看到 `ActivateEx` / `Deactivate` |
+| #4.7 系统加载验证 | TSF manager 创建 TIP 实例 | 切换输入法时在 DebugView/WinDbg 或 `%LOCALAPPDATA%\DoubaoVoiceInput\tsf-tip.log` 看到 `ActivateEx` / `Deactivate`；当前两者均已验证 |
 
 ### #4 开发期命令
 
@@ -165,6 +165,14 @@ cargo build -p doubao-tsf-tip
 - 先用固定文本验证 composition update 和 final commit。
 - 支持 cancel 和 error cleanup。
 - 验证 Notepad 和现代浏览器输入框。
+
+当前实现切片：
+
+- TIP activation 时注册 `ITfKeyEventSink`。
+- `F6` 作为开发期 fixed-text smoke trigger。
+- `F6` 触发 `ITfThreadMgr::GetFocus`、`ITfDocumentMgr::GetTop`、`ITfContext::RequestEditSession`。
+- edit session 中通过 `ITfContextComposition::StartComposition`、`ITfRange::SetText` 和 `ITfComposition::EndComposition` 提交固定文本。
+- 当前代码已编译，仍需 elevated 注册新 DLL 后在 Notepad/浏览器验证实际输入行为。
 
 关闭标准：
 

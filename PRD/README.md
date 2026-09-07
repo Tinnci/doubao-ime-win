@@ -1,12 +1,16 @@
-# PRD 文档说明
+# [DEPRECATED] PRD 文档说明
 
-本目录维护 Doubao Voice Input 的当前产品和技术文档。文档已经从旧的“绿色便携语音输入辅助工具”路线收敛到当前 milestone：系统级 Windows 输入法 / TSF TIP。
+> [!NOTE]
+> **归档说明**：由于豆包输入法官方 Windows 版本已发布并开启内测，本项目及所有相关 Milestone 开发计划已正式废弃归档 (Deprecated & Archived)。本目录下的 PRD 与架构设计文档仅作为技术研究与设计参考保留。
+
+本目录维护 Doubao Voice Input 的历史产品和技术文档。文档此前已从旧的“绿色便携语音输入辅助工具”路线收敛到系统级 Windows 输入法 / TSF TIP 原型。
 
 ## 文档列表
 
 | 文档 | 作用 |
 |------|------|
 | [windows-ime-requirements.md](./windows-ime-requirements.md) | 产品目标、范围、非目标、验收标准和 milestone issue 映射 |
+| [product-roadmap.md](./product-roadmap.md) | 从当前 TSF TIP milestone 到可发布产品的后续路线图和功能计划 |
 | [milestone-1-roadmap.md](./milestone-1-roadmap.md) | milestone 目标、阶段、当前状态、下一步和退出标准 |
 | [technical-architecture.md](./technical-architecture.md) | TSF TIP 技术架构、Rust core 边界、COM/profile/composition 设计 |
 | [adr-0001-tsf-tip-architecture.md](./adr-0001-tsf-tip-architecture.md) | #1 架构决策：推荐方案、放弃方案、接口、注册路径、风险和 demo 标准 |
@@ -25,11 +29,12 @@
 ## 阅读顺序
 
 1. 先读 [产品需求](./windows-ime-requirements.md)，确认当前要做的是系统级输入法，而不是只做文本注入工具。
-2. 再读 [Milestone 1 路线图](./milestone-1-roadmap.md)，确认阶段目标、当前状态和下一步。
-3. 再读 [架构决策 ADR](./adr-0001-tsf-tip-architecture.md)，确认为什么选择当前路线。
-4. 阅读 [技术架构](./technical-architecture.md) 和 [Core/Shell 边界](./core-shell-boundary.md)，确认 TSF shell、Rust core、ASR worker 和 UI 的边界。
-5. 用 [任务清单](./task-list.md) 对齐 GitHub milestone 的实现顺序。
-6. 需要新增模块或调整目录时，参考 [项目结构](./project-structure.md)。
+2. 再读 [后续路线图和功能计划](./product-roadmap.md)，确认 M1 到 M6 的产品推进顺序。
+3. 再读 [Milestone 1 路线图](./milestone-1-roadmap.md)，确认当前 TSF TIP MVP 的阶段目标、当前状态和下一步。
+4. 再读 [架构决策 ADR](./adr-0001-tsf-tip-architecture.md)，确认为什么选择当前路线。
+5. 阅读 [技术架构](./technical-architecture.md) 和 [Core/Shell 边界](./core-shell-boundary.md)，确认 TSF shell、Rust core、ASR worker 和 UI 的边界。
+6. 用 [任务清单](./task-list.md) 对齐 GitHub milestone 的实现顺序。
+7. 需要新增模块或调整目录时，参考 [项目结构](./project-structure.md)。
 
 ## 维护规则
 
@@ -42,6 +47,7 @@
 
 | 日期 | 版本 | 更新内容 |
 |------|------|----------|
+| 2026-06-17 | v3.4 | 新增后续路线图和功能计划，覆盖 M1-M6、UI service、IPC、installer、QA 和发布路线 |
 | 2026-06-17 | v3.3 | 补充 TSF TIP 完整完成计划，明确 keyboard category、UI service 和 IPC 路线 |
 | 2026-06-16 | v3.2 | 细化 Milestone 1 gate，补 #4 开发期注册/卸载/status 工具和脚本状态 |
 | 2026-06-15 | v3.1 | 细化 Milestone 1 / #4 language profile 注册目标，同步最小 COM/TSF 注册实现状态 |

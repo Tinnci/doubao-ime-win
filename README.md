@@ -1,17 +1,28 @@
-# Doubao Voice Input (豆包语音输入)
+# [DEPRECATED] Doubao Voice Input (豆包语音输入)
 
-Windows 语音输入项目，基于豆包 ASR 实现实时识别。当前可运行版本是热键/托盘/悬浮按钮驱动的语音输入辅助工具；当前主线 milestone 是把它推进为系统级 Windows 输入法，也就是 TSF Text Input Processor (TIP)。
+> [!WARNING]
+> **本项目已废弃并归档 (Deprecated & Archived)**
+>
+> 豆包输入法官方 Windows 版本（由北京春田智云 / 字节跳动官方出品）已正式发布并开启内测，提供了完善的系统级原生输入、实时语音识别与 AI 助手体验。
+> 本项目作为早期的开源逆向探索与系统级 TSF TIP 原型实验，其历史探索使命已经完成，现已全面停止新功能迭代与维护。
+>
+> - **推荐使用官方版本**：建议前往官方渠道体验豆包官方输入法正式/内测版本。
+> - **归档参考价值**：本仓库代码与架构设计文档永久归档保留，供广大开发者作为 **Rust 开发 Windows TSF (Text Services Framework) TIP 原生输入法**、COM 组件交互、WebSocket 实时语音流式处理的开源研究参考。
+> - **残留清理**：若您此前在系统中注册过本项目的开发版 TIP，请参见下方 [开发版注销与清理](#开发版注销与清理) 彻底移除注册表残留。
 
-## 当前状态
+## 项目定位（历史）
 
-| 方向 | 状态 | 说明 |
-|------|------|------|
-| ASR 识别核心 | 已有基础实现 | 设备注册、WebSocket ASR、音频采集和 Opus 编码已在现有 Rust 代码中实现 |
-| 辅助工具入口 | 已有基础实现 | 支持热键、托盘、悬浮按钮，并通过 `SendInput` 向焦点窗口输入文本 |
-| 系统级 IME/TIP | 骨架实现中 | 已有最小 TSF COM DLL skeleton 和 language profile 注册/诊断工具；仍需真实系统可见性验证、composition、候选/状态 UI |
-| 发布能力 | 待完善 | 便携构建脚本已有基础，系统级 IME 还需要发布安装器、签名、卸载和 QA 矩阵 |
+Windows 语音输入项目，早期基于豆包 ASR 协议实现实时识别。最初版本是热键/托盘/悬浮按钮驱动的语音输入辅助工具；后续曾推进为系统级 Windows 输入法 (TSF Text Input Processor, TIP) 原型。现已随官方版本的发布正式归档。
 
-`SendInput` 路径保留为兼容/回退能力，但不再是系统级输入法主路径。后续主路径应通过 TSF composition 和 commit API 向目标应用提交文本。
+## 归档状态说明
+
+| 方向 | 归档前状态 | 归档处置说明 |
+|------|------------|--------------|
+| 官方产品替代 | 官方正式内测 | 字节跳动官方已发布 Windows 豆包输入法，提供原生系统集成与模型能力，无需自研 |
+| ASR 识别核心 | 已有基础实现 | 设备注册、WebSocket ASR、音频采集和 Opus 编码代码保留供学习 |
+| 辅助工具入口 | 已有基础实现 | 热键、托盘、悬浮按钮及 `SendInput` 注入逻辑保留供参考 |
+| 系统级 IME/TIP | 骨架验证通过 | 验证了 Rust 编写 TSF COM DLL、注册 Keyboard Category 及 Language Profile 的完整链路，代码归档保留 |
+| 维护状态 | **已停止维护 (Deprecated)** | 不再接收新功能与 Bug 修复，milestone 计划已关闭 |
 
 ## 目标能力
 
@@ -86,9 +97,36 @@ cargo build -p doubao-tsf-tip
 
 TIP DLL 被 TSF host 加载后，activation 诊断会同时写入 `OutputDebugStringW` 和 `%LOCALAPPDATA%\DoubaoVoiceInput\tsf-tip.log`。
 
+## 开发版注销与清理
+
+如果此前曾在系统中测试注册过本项目的开发版 TSF TIP（在注册表和输入法列表中显示为 `Doubao Voice Input`），可通过以下方式彻底清理注销，避免与系统输入法或官方版本产生冲突：
+
+### 方式 1：使用项目自带注销脚本（需管理员权限）
+```powershell
+# 以管理员权限打开 PowerShell
+.\scripts\unregister-tip.ps1
+```
+
+### 方式 2：手动注册表清理（PowerShell 管理员模式）
+如果无需重新编译工具，可直接执行如下命令移除注册表残留项：
+```powershell
+$paths = @(
+    "HKLM:\SOFTWARE\Microsoft\CTF\TIP\{8F5C8C59-2A4D-4DDF-8EBF-F2AB0E9B5A31}",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\CTF\TIP\{8F5C8C59-2A4D-4DDF-8EBF-F2AB0E9B5A31}",
+    "HKCU:\Software\Microsoft\CTF\TIP\{8F5C8C59-2A4D-4DDF-8EBF-F2AB0E9B5A31}",
+    "HKLM:\SOFTWARE\Classes\CLSID\{8F5C8C59-2A4D-4DDF-8EBF-F2AB0E9B5A31}",
+    "HKLM:\SOFTWARE\Classes\WOW6432Node\CLSID\{8F5C8C59-2A4D-4DDF-8EBF-F2AB0E9B5A31}",
+    "HKCU:\Software\Classes\CLSID\{8F5C8C59-2A4D-4DDF-8EBF-F2AB0E9B5A31}"
+)
+foreach ($p in $paths) {
+    if (Test-Path $p) { Remove-Item -Path $p -Recurse -Force }
+}
+```
+
 ## 文档
 
 - [产品需求](PRD/windows-ime-requirements.md)
+- [后续路线图和功能计划](PRD/product-roadmap.md)
 - [Milestone 1 路线图](PRD/milestone-1-roadmap.md)
 - [技术架构](PRD/technical-architecture.md)
 - [架构决策 ADR](PRD/adr-0001-tsf-tip-architecture.md)

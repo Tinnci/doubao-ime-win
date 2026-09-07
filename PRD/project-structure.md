@@ -1,7 +1,7 @@
 # Doubao Voice Input - 项目结构
 
-**版本**: v3.1
-**日期**: 2026-06-16
+**版本**: v3.2
+**日期**: 2026-06-17
 **目标**: 支持当前辅助工具和后续系统级 TSF TIP 共存
 
 ## 1. 当前结构
@@ -31,7 +31,7 @@ crates/
         └── windows_tip.rs
 ```
 
-当前 `crates/tsf-tip` 能构建 `doubao_tsf_tip.dll`，包含 COM DLL 导出、class factory、最小 `ITfTextInputProcessorEx` lifecycle 和开发期 `doubao-tip-tool`。工具已支持 register、unregister 和 status 诊断；真实 Windows 输入法列表可见性、TSF manager activation 和发布安装器仍待验证/实现。
+当前 `crates/tsf-tip` 能构建 `doubao_tsf_tip.dll`，包含 COM DLL 导出、class factory、最小 `ITfTextInputProcessorEx` lifecycle 和开发期 `doubao-tip-tool`。工具已支持 register、unregister、status、active-profile 和 switch-test 诊断；本机已确认 Windows 输入法列表可见，并已触发 `ActivateEx` / `Deactivate`，仍需验证卸载无残留、composition 和发布安装器。
 
 ## 2. 目标结构
 
@@ -69,6 +69,15 @@ doubao-ime-win/
 │   │   │   └── ui/
 │   │   └── Cargo.toml          # 已有最小 crate，后续继续补模块拆分
 │   │
+│   ├── tip-ui/
+│   │   ├── src/
+│   │   │   ├── main.rs
+│   │   │   ├── ipc.rs
+│   │   │   ├── status_window.rs
+│   │   │   ├── candidate_panel.rs
+│   │   │   └── settings.rs
+│   │   └── Cargo.toml
+│   │
 │   └── tip-installer/
 │       ├── src/
 │       │   ├── main.rs
@@ -93,6 +102,8 @@ doubao-ime-win/
 ├── PRD/
 │   ├── README.md
 │   ├── windows-ime-requirements.md
+│   ├── product-roadmap.md
+│   ├── milestone-1-roadmap.md
 │   ├── technical-architecture.md
 │   ├── adr-0001-tsf-tip-architecture.md
 │   ├── core-shell-boundary.md
@@ -114,7 +125,8 @@ doubao-ime-win/
 
 - `voice-core` 不依赖 TSF、COM、Win32 UI 或 `SendInput`。
 - `voice-app` 承接当前热键/托盘/悬浮按钮体验，继续作为 fallback 和 ASR 调试入口。
-- `tsf-tip` 只处理系统输入法 shell：COM、profile、activation、composition、候选/状态 UI。
+- `tsf-tip` 只处理系统输入法 shell：COM、profile、activation、composition、TSF sinks、轻量 IPC client。
+- `tip-ui` 处理复杂窗口：状态窗、候选/识别文本 panel、设置页、诊断入口和 IPC server。
 - `tip-installer` 负责注册、卸载、诊断和开发期脚本入口。
 - 公共 GUID、profile 名称、产品名和资源路径集中定义，避免注册和卸载不一致。
 
@@ -129,7 +141,7 @@ doubao-ime-win/
 | `src/business/voice_controller.rs` | `voice-app` adapter | 已改为 fallback adapter，订阅 core events 后调用 `TextInserter` |
 | `src/business/text_inserter.rs` | `voice-app/sendinput_fallback` | 只作为 fallback，TSF 主路径不得依赖 |
 | `src/business/hotkey_manager.rs` | `voice-app/hotkey` | 系统级 TIP 不依赖全局热键 |
-| `src/ui` | `voice-app`，另建 `tsf-tip/ui` | 托盘/悬浮按钮和 TIP candidate/status UI 分离 |
+| `src/ui` | `voice-app`，另建 `tip-ui` | 托盘/悬浮按钮和 TIP candidate/status UI 分离 |
 
 ## 5. TSF TIP 模块边界
 
@@ -143,7 +155,7 @@ doubao-ime-win/
 | `profile` | language profile 注册、卸载和诊断 |
 | `composition` | TSF context、edit session、composition lifecycle |
 | `event_bridge` | core event 到 TSF edit session 的队列和节流 |
-| `ui` | 候选窗、状态 UI、DPI 和 caret 定位 |
+| `ui_ipc` | 与 `doubao-tip-ui.exe` 通信，发送状态、候选、focus/caret 事件 |
 
 ## 6. 脚本和安装工具
 
